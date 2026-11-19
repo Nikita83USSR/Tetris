@@ -1960,6 +1960,17 @@
                 <div><div class="settings-title">ТАКТИЛЬНЫЙ ОТКЛИК</div><div class="settings-current" id="haptics-support-note">Короткая вибрация при важных действиях</div></div>
                 <button id="haptics-toggle" class="secondary-btn settings-toggle" type="button" aria-pressed="true">ВКЛ</button>
             </section>
+            <section class="settings-card">
+                <div class="settings-haptics-row">
+                    <div><div class="settings-title">ГОЛОС СИСТЕМЫ</div><div class="settings-current">Роботизированные игровые объявления</div></div>
+                    <div style="display:flex;gap:6px;align-items:center">
+                        <button id="voice-preview-btn" class="secondary-btn settings-toggle" type="button">ТЕСТ</button>
+                        <button id="voice-toggle" class="secondary-btn settings-toggle" type="button" aria-pressed="true">ВКЛ</button>
+                    </div>
+                </div>
+                <div class="settings-title" style="margin-top:10px"><label for="voice-volume">ГРОМКОСТЬ ГОЛОСА</label><b id="voice-volume-value">78%</b></div>
+                <input id="voice-volume" class="settings-range" type="range" min="35" max="100" step="5" value="78">
+            </section>
             <button class="main-btn" id="settings-back-btn" type="button">ГОТОВО</button>
         </div>
     </div>
@@ -2695,6 +2706,155 @@ function stopAssetSfx() {
     activeSfxVoices.forEach(voice => { try { voice.pause(); voice.currentTime = 0; } catch (_) {} });
     activeSfxVoices = [];
 }
+
+// ===================== SYSTEM AI VOICE =====================
+// Alisa COMMAND voice pack. Clips are loaded only when a cue is needed.
+const SYSTEM_VOICE_CUES = {
+    boot: { file:'boot.mp3', priority:30, cooldown:0 },
+    'line-clear': { file:'line-clear.mp3', priority:24, cooldown:5200 },
+    'level-up': { file:'level-up.mp3', priority:54, cooldown:900 },
+    overdrive: { file:'overdrive.mp3', priority:90, cooldown:2500 },
+    tetris: { file:'tetris.mp3', priority:72, cooldown:1100 },
+    tspin: { file:'tspin.mp3', priority:74, cooldown:1100 },
+    'perfect-clear': { file:'perfect-clear.mp3', priority:96, cooldown:1500 },
+    combo: { file:'combo.mp3', priority:38, cooldown:9000 },
+    danger: { file:'danger.mp3', priority:84, cooldown:15000 },
+    'game-over': { file:'game-over.mp3', priority:110, cooldown:0 },
+    'new-record': { file:'new-record.mp3', priority:88, cooldown:0 },
+    challenge: { file:'challenge.mp3', priority:60, cooldown:1800 }
+};
+let systemVoiceEnabled = true;
+let systemVoiceVolume = .78;
+let systemVoiceQueue = [];
+let activeSystemVoice = null;
+let systemVoiceSequence = 0;
+let systemVoiceBootPlayed = false;
+let pendingNewRecordVoice = false;
+let lastSystemVoiceCueAt = new Map();
+let systemVoiceDuckState = null;
+let systemVoiceDuckTimer = null;
+
+function loadSystemVoiceSettings() {
+    const saved = safeLoad('cyberTetrisSystemVoiceV1', null);
+    if (saved && typeof saved === 'object') {
+        systemVoiceEnabled = saved.enabled !== false;
+        systemVoiceVolume = Math.max(.35, Math.min(1, Number(saved.volume) || .78));
+    }
+    updateSystemVoiceUI();
+}
+function saveSystemVoiceSettings() {
+    safeSave('cyberTetrisSystemVoiceV1', { enabled:systemVoiceEnabled, volume:systemVoiceVolume });
+}
+function updateSystemVoiceUI() {
+    const toggle = document.getElementById('voice-toggle');
+    const volume = document.getElementById('voice-volume');
+    const volumeValue = document.getElementById('voice-volume-value');
+    if (toggle) {
+        toggle.textContent = systemVoiceEnabled ? 'ВКЛ' : 'ВЫКЛ';
+        toggle.classList.toggle('off', !systemVoiceEnabled);
+        toggle.setAttribute('aria-pressed', String(systemVoiceEnabled));
+    }
+    if (volume) volume.value = String(Math.round(systemVoiceVolume * 100));
+    if (volumeValue) volumeValue.textContent = `${Math.round(systemVoiceVolume * 100)}%`;
+}
+function setSystemVoiceMusicDuck(active) {
+    // Duck the Web Audio soundtrack without touching HTMLAudio fallback tracks,
+    // whose volume may be in the middle of a level-up crossfade.
+    if (active) {
+        if (!systemVoiceDuckState) {
+            systemVoiceDuckState = {
+                music: musicGain ? musicGain.gain.value : null,
+                overdrive: overdriveGain ? overdriveGain.gain.value : null
+            };
+        }
+        if (audioCtx && musicGain) {
+            const now = audioCtx.currentTime;
+            musicGain.gain.cancelScheduledValues(now);
+            musicGain.gain.setTargetAtTime(Math.min(musicGain.gain.value, .28), now, .045);
+            if (overdriveGain && overdriveGain.gain.value > .001) {
+                overdriveGain.gain.cancelScheduledValues(now);
+                overdriveGain.gain.setTargetAtTime(Math.min(overdriveGain.gain.value, .22), now, .045);
+            }
+        }
+        return;
+    }
+    if (!systemVoiceDuckState) return;
+    const saved = systemVoiceDuckState;
+    systemVoiceDuckState = null;
+    if (audioCtx && musicGain && saved.music !== null) {
+        const now = audioCtx.currentTime;
+        musicGain.gain.cancelScheduledValues(now);
+        musicGain.gain.setTargetAtTime(saved.music, now, .12);
+        if (overdriveGain && saved.overdrive !== null) {
+            overdriveGain.gain.cancelScheduledValues(now);
+            overdriveGain.gain.setTargetAtTime(saved.overdrive, now, .12);
+        }
+    }
+}
+function finishSystemVoice(audio) {
+    if (activeSystemVoice !== audio) return;
+    activeSystemVoice = null;
+    setTimeout(() => {
+        if (systemVoiceQueue.length) playNextSystemVoice();
+        else setSystemVoiceMusicDuck(false);
+    }, 110);
+}
+function stopSystemVoiceQueue() {
+    systemVoiceQueue.length = 0;
+    if (activeSystemVoice) {
+        const current = activeSystemVoice;
+        activeSystemVoice = null;
+        current.onended = current.onerror = null;
+        try { current.pause(); current.currentTime = 0; } catch (_) {}
+    }
+    setSystemVoiceMusicDuck(false);
+}
+function playNextSystemVoice() {
+    if (activeSystemVoice || !systemVoiceQueue.length || muted || (!systemVoiceEnabled && !systemVoiceQueue[0]?.force)) {
+        if (!activeSystemVoice && !systemVoiceQueue.length) setSystemVoiceMusicDuck(false);
+        return;
+    }
+    const cue = systemVoiceQueue.shift();
+    const audio = new Audio(`./assets/audio/voice/${cue.file}`);
+    audio.preload = 'auto';
+    audio.volume = systemVoiceVolume;
+    audio.dataset.cueName = cue.name;
+    activeSystemVoice = audio;
+    setSystemVoiceMusicDuck(true);
+    audio.onended = () => finishSystemVoice(audio);
+    audio.onerror = () => finishSystemVoice(audio);
+    audio.play().catch(() => finishSystemVoice(audio));
+}
+function queueSystemVoice(name, options = {}) {
+    const cue = SYSTEM_VOICE_CUES[name];
+    if (!cue || muted || (!systemVoiceEnabled && !options.force)) return;
+    const now = performance.now();
+    const last = lastSystemVoiceCueAt.get(name) || -Infinity;
+    if (!options.force && now - last < cue.cooldown) return;
+    if (!options.force) lastSystemVoiceCueAt.set(name, now);
+    const item = { name, file:cue.file, priority:cue.priority, seq:systemVoiceSequence++, force:!!options.force };
+
+    // Game Over and Perfect Clear may interrupt a lower-priority line; ordinary events queue politely.
+    if (options.interrupt || name === 'game-over' || (activeSystemVoice && cue.priority >= (SYSTEM_VOICE_CUES[activeSystemVoice.dataset?.cueName]?.priority || 0) + 18)) {
+        if (activeSystemVoice) {
+            const old = activeSystemVoice;
+            activeSystemVoice = null;
+            old.onended = old.onerror = null;
+            try { old.pause(); old.currentTime = 0; } catch (_) {}
+        }
+        systemVoiceQueue = systemVoiceQueue.filter(q => q.priority >= cue.priority);
+        systemVoiceQueue.unshift(item);
+    } else {
+        if (systemVoiceQueue.some(q => q.name === name)) return;
+        systemVoiceQueue.push(item);
+        systemVoiceQueue.sort((a,b) => b.priority - a.priority || a.seq - b.seq);
+    }
+    playNextSystemVoice();
+}
+function stopAssetSfxAndVoice() {
+    stopAssetSfx();
+    stopSystemVoiceQueue();
+}
 function musicTrackIndexForLevel(level) {
     return ((Math.max(1,Number(level)||1)-1) % MUSIC_TRACKS.length);
 }
@@ -3270,7 +3430,7 @@ function toggleMute() {
     btn.textContent = muted ? '×' : '♫';
     btn.setAttribute('aria-label', muted ? 'Включить звук' : 'Выключить звук');
     if (masterGain && audioCtx) masterGain.gain.setTargetAtTime(muted ? 0 : 0.82, audioCtx.currentTime, 0.035);
-    if (muted) { pauseMusic(); stopAssetSfx(); }
+    if (muted) { pauseMusic(); stopAssetSfxAndVoice(); }
     else if (!paused && !isGameOver) {
         startMusic(true);
         if (overdriveState) triggerOverdriveAudio();
@@ -3315,6 +3475,7 @@ function triggerLevelOverdrive(level) {
     triggerCameraPunch(.023,760,COL*.5,ROW*.48,'level-overdrive');
     triggerShake(3.1,250);
     haptic([13,25,18,34],true);
+    queueSystemVoice('overdrive');
     triggerOverdriveAudio();
 }
 function updateOverdriveState(time) {
@@ -4594,10 +4755,20 @@ function arenaSweep(spinInfo = { isTSpin: false, mini: false }) {
     updateStats({ scorePulse: true, levelPulse: player.level > oldLevel, linesPulse: true });
 
     playLineClearSound(rows.length);
-    if (spinInfo.isTSpin) { playAssetSfx('tspin', .72); playMusicSting('tspin'); }
-    else if (earnedBackToBack) playMusicSting('b2b');
-    else if (combo > 1) playMusicSting('combo');
-    if (player.level > oldLevel) { switchMusicTrackForLevel(); playMusicSting('level'); triggerLevelOverdrive(player.level); }
+    if (spinInfo.isTSpin) {
+        queueSystemVoice('tspin');
+        playAssetSfx('tspin', .72);
+        playMusicSting('tspin');
+    } else {
+        if (rows.length >= 4) queueSystemVoice('tetris');
+        else {
+            if (rows.length > 0 && combo === 1) queueSystemVoice('line-clear');
+            if (combo === 3 || (combo >= 5 && combo % 5 === 0)) queueSystemVoice('combo');
+        }
+        if (earnedBackToBack) playMusicSting('b2b');
+        else if (combo > 1) playMusicSting('combo');
+    }
+    if (player.level > oldLevel) { queueSystemVoice('level-up'); switchMusicTrackForLevel(); playMusicSting('level'); triggerLevelOverdrive(player.level); }
     triggerShake(rows.length >= 4 ? 8 : 3.5 + rows.length * 1.5, rows.length >= 4 ? 260 : 190);
     triggerCameraPunch(rows.length >= 4 ? .032 : .014 + rows.length*.003, rows.length >= 4 ? 620 : 340, COL*.5, rows.reduce((a,b)=>a+b,0)/rows.length, rows.length>=4?'tetris':'line');
     haptic(rows.length >= 4 ? [18,34,26,42,48] : [10,22,16], true);
@@ -4698,6 +4869,7 @@ function finishLineClear() {
         perfectClearFx = { start: currentFrameTime || performance.now(), duration: reducedMotion ? 260 : 920 };
         updateChallengeProgress('perfect', 1, 'add');
         eventBanner = { title: 'PERFECT CLEAR!', subtitle: `ПОЛЕ ОЧИЩЕНО · БОНУС +${bonus.toLocaleString('ru-RU')}`, start: performance.now(), duration: 1900, color: '#8bfff0' };
+        queueSystemVoice('perfect-clear');
         showHoloReward('PERFECT CLEAR!', `БОНУС +${bonus.toLocaleString('ru-RU')} · ПОЛЕ ОЧИЩЕНО`, 'perfect', 2350);
         triggerEnergyFrame('perfect',2100);
         playAssetSfx('perfect', .82);
@@ -4771,6 +4943,7 @@ function applyMobileControlMode() {
     if (joystick) joystick.classList.toggle('hidden',controlSettings.mode!=='joystick');
 }
 function updateControlSettingsUI() {
+    updateSystemVoiceUI();
     const sliderBtn=document.getElementById('control-mode-slider');
     const joystickBtn=document.getElementById('control-mode-joystick');
     if (sliderBtn) sliderBtn.classList.toggle('selected',controlSettings.mode==='slider');
@@ -4795,6 +4968,7 @@ function updateControlSettingsUI() {
     if (guide && isMobile) guide.innerHTML=controlSettings.mode==='joystick'?'ПЛАВАЮЩИЙ ДЖОЙСТИК: ↑ ПОВОРОТ · ← → ДВИЖЕНИЕ<br>↓ УСКОРЕНИЕ · ТАП — МГНОВЕННЫЙ БРОСОК':'СЛАЙДЕР ← → — ПЕРЕМЕЩЕНИЕ · ПОВОРОТ — ВРАЩЕНИЕ<br>БРОСОК — МГНОВЕННО ВНИЗ · УСКОРИТЬ — МЯГКОЕ ПАДЕНИЕ';
 }
 function initMetaSystems() {
+    loadSystemVoiceSettings();
     loadControlSettings();
     const savedStats = safeLoad('cyberTetrisStatsV1', null);
     if (savedStats && typeof savedStats === 'object') persistentStats = { ...persistentStats, ...savedStats };
@@ -4828,6 +5002,7 @@ function updateChallengeProgress(type, value, mode='max') {
     if (nextValue >= def.target && !dailyChallengeState.claimed[type]) {
         dailyChallengeState.claimed[type] = true;
         eventBanner = { title:'ИСПЫТАНИЕ ВЫПОЛНЕНО!', subtitle:`${def.title.toUpperCase()} · МЕДАЛЬ ДНЯ`, start:performance.now(), duration:1600, color:'#8dffd0' };
+        queueSystemVoice('challenge');
         showHoloReward('ИСПЫТАНИЕ!', `${def.title.toUpperCase()} · МЕДАЛЬ ДНЯ`, 'challenge', 1900);
         triggerEnergyFrame('challenge',1350);
         playMusicSting('challenge');
@@ -5054,7 +5229,7 @@ function saveGameResult() {
     safeSave('cyberTetrisStatsV1',persistentStats);
     try {
         const oldBest=Number(localStorage.getItem('cyberTetrisBest')||0);
-        if(player.score>oldBest) localStorage.setItem('cyberTetrisBest',String(player.score));
+        if(player.score>oldBest) { localStorage.setItem('cyberTetrisBest',String(player.score)); pendingNewRecordVoice=true; }
     } catch (_) {}
     const finalStats=document.getElementById('final-mini-stats');
     if(finalStats) finalStats.textContent=`${player.lines} ЛИНИЙ · ${player.tspins} T-SPIN · ${player.tetrises} ТЕТРИСА · УР. ${player.level}`;
@@ -5126,6 +5301,7 @@ function updateDangerState(delta, time) {
     if (dangerHeat > .72 && !dangerWasCritical) {
         dangerWasCritical = true;
         triggerCameraPunch(.0045, 520, COL*.5, ROW*.76, 'danger');
+        queueSystemVoice('danger');
         haptic([12,24,18]);
     } else if (dangerHeat < .56) dangerWasCritical = false;
     if (dangerHeat > .56 && time - dangerLastPulse > 1450 && !paused && !muted && !gameOverAnim) {
@@ -5185,6 +5361,7 @@ function lockPiece() {
             player.score += bonus;
             updateChallengeProgress('tspin', 1, 'add');
             eventBanner = { title: spinInfo.mini ? 'МИНИ Т-СПИН!' : 'Т-СПИН!', subtitle: `БОНУС +${bonus.toLocaleString('ru-RU')} ОЧКОВ`, start: performance.now(), duration: 1150, color: '#ffbd70' };
+            queueSystemVoice('tspin');
             showHoloReward(spinInfo.mini ? 'МИНИ T-SPIN!' : 'T-SPIN!', `БОНУС +${bonus.toLocaleString('ru-RU')} ОЧКОВ`, 'tspin', 1450);
             triggerEnergyFrame('tspin',1100);
             playMusicSting('tspin');
@@ -5353,6 +5530,10 @@ function advanceGameOver(timestamp) {
 
     if (!gameOverAnim.resultShown && gameOverAnim.elapsed >= gameOverAnim.duration) {
         gameOverAnim.resultShown = true;
+        if (pendingNewRecordVoice) {
+            pendingNewRecordVoice = false;
+            setTimeout(() => queueSystemVoice('new-record'), 520);
+        }
         const panel = document.getElementById('game-over-screen');
         panel.classList.remove('hidden');
         panel.classList.remove('game-over-reveal');
@@ -5456,6 +5637,7 @@ function gameOver() {
     lineClearAnim = null;
     eventBanner = null;
     stopMusic();
+    queueSystemVoice('game-over', { interrupt:true });
     playGameOverSound();
     haptic([35,42,60], true);
 
@@ -5493,6 +5675,7 @@ function init() {
     backToBackActive = false;
     backToBackChain = 0;
     runFinalized = false;
+    pendingNewRecordVoice = false;
     player.tetrises = 0; player.tspins = 0; player.perfectClears = 0; player.bestCombo = 0;
     isLocking = false;
     lockTimer = 0;
@@ -5545,6 +5728,7 @@ function init() {
     }
 
     startMusic();
+    if (!systemVoiceBootPlayed) { systemVoiceBootPlayed = true; queueSystemVoice('boot'); }
     // loop already running
 }
 
@@ -5881,6 +6065,9 @@ document.getElementById('control-mode-slider').addEventListener('click',()=>{con
 document.getElementById('control-mode-joystick').addEventListener('click',()=>{controlSettings.mode='joystick';saveControlSettings();applyMobileControlMode();updateControlSettingsUI();});
 document.getElementById('control-sensitivity').addEventListener('input',ev=>{controlSettings.sensitivity=Math.max(.7,Math.min(1.5,Number(ev.target.value)/100));saveControlSettings();updateControlSettingsUI();});
 document.getElementById('haptics-toggle').addEventListener('click',()=>{controlSettings.haptics=!controlSettings.haptics;saveControlSettings();updateControlSettingsUI();if(controlSettings.haptics)haptic(12,true);});
+document.getElementById('voice-toggle').addEventListener('click',()=>{systemVoiceEnabled=!systemVoiceEnabled;saveSystemVoiceSettings();updateSystemVoiceUI();if(!systemVoiceEnabled)stopSystemVoiceQueue();});
+document.getElementById('voice-volume').addEventListener('input',ev=>{systemVoiceVolume=Math.max(.35,Math.min(1,Number(ev.target.value)/100));saveSystemVoiceSettings();updateSystemVoiceUI();if(activeSystemVoice)activeSystemVoice.volume=systemVoiceVolume;});
+document.getElementById('voice-preview-btn').addEventListener('click',()=>queueSystemVoice('boot',{force:true,interrupt:true}));
 document.getElementById('records-open-btn').addEventListener('click', () => openMetaScreen('records'));
 document.getElementById('challenges-open-btn').addEventListener('click', () => openMetaScreen('challenges'));
 document.getElementById('gameover-records-btn').addEventListener('click', () => openMetaScreen('records'));

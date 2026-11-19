@@ -1,0 +1,87 @@
+{
+  "voice": "Alisa - Vibrant & Punchy",
+  "voice_id": "cb404f2d35334184839c66cbab7937b2",
+  "profile": "COMMAND slow",
+  "processing": {
+    "speed": 0.88,
+    "pitch_semitones": -1,
+    "eq": "darkened highs, slightly fuller low-mid",
+    "metallic": "very subtle short comb echo",
+    "reverb": "short restrained tail",
+    "stereo": "subtle side delay"
+  },
+  "clips": [
+    {
+      "name": "boot",
+      "file": "boot.mp3",
+      "text": "Система активирована.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=4e32be19c0ce47cdbd6a05111eb16590.mp3"
+    },
+    {
+      "name": "line-clear",
+      "file": "line-clear.mp3",
+      "text": "Линия очищена.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=2a590d462c98444a821efc647a883643.mp3"
+    },
+    {
+      "name": "level-up",
+      "file": "level-up.mp3",
+      "text": "Уровень повышен.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=481a348d82c545d79df3ae197baa36fe.mp3"
+    },
+    {
+      "name": "tetris",
+      "file": "tetris.mp3",
+      "text": "Тетрис! Превосходный результат.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=4c558cceb062413690b3415f5f3c4613.mp3"
+    },
+    {
+      "name": "tspin",
+      "file": "tspin.mp3",
+      "text": "Ти-спин подтверждён.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=0f3b0e1f5f644837a402c9ff1c4e8eab.mp3"
+    },
+    {
+      "name": "perfect-clear",
+      "file": "perfect-clear.mp3",
+      "text": "Безупречно. Поле очищено.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=4bdb21d443034b35840e66bc16c5db09.mp3"
+    },
+    {
+      "name": "combo",
+      "file": "combo.mp3",
+      "text": "Отличная серия. Продолжайте.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=6b1ff3bdf26f4c98a04aab2f4a1bbc60.mp3"
+    },
+    {
+      "name": "danger",
+      "file": "danger.mp3",
+      "text": "Внимание. Система перегружена. Критический уровень.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=e82e174ed91e42848e49b549cd551ec5.mp3"
+    },
+    {
+      "name": "game-over",
+      "file": "game-over.mp3",
+      "text": "Критическая ошибка. Система остановлена.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=3dca2c8723c547fb98e33b211b44742f.mp3"
+    },
+    {
+      "name": "new-record",
+      "file": "new-record.mp3",
+      "text": "Новый рекорд. Превосходно!",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=62490ed657014b0ea96217c99a434ec7.mp3"
+    },
+    {
+      "name": "challenge",
+      "file": "challenge.mp3",
+      "text": "Испытание выполнено.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=e32ba5f37b2f41758e0d7ffeb054c747.mp3"
+    },
+    {
+      "name": "overdrive",
+      "file": "overdrive.mp3",
+      "text": "Овердрайв активирован. Максимальная мощность.",
+      "source_url": "https://resource2.heygen.ai/text_to_speech/99bb83037067496f9244973240fc412c/cb404f2d35334184839c66cbab7937b2/id=b91845be839a4fa08d0a2c38f32f7109.mp3"
+    }
+  ]
+}
