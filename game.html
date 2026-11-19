@@ -2340,6 +2340,7 @@ function drawSynthMountains(horizon, t) {
     bgCtx.fillStyle = haze;
     bgCtx.fillRect(0, horizon, bgW, bgH * .18);
 }
+// Removed: animated atmospheric rainbow ribbons were competing with active pieces.
 
 function drawLevelSpeedStreaks(horizon, motionTime, speedMultiplier) {
     const intensity = Math.max(0, Math.min(1, (speedMultiplier - 1) / 1.15));
@@ -2548,8 +2549,6 @@ function drawBackground(t) {
         bgCtx.stroke();
         bgCtx.restore();
     }
-
-    // Rainbow atmospheric ribbons removed: keep the playfield and silhouettes unobstructed.
     if (!hasScene) drawSynthMountains(horizon, bgMotionClock);
     drawSkyTraffic(bgMotionClock, horizon, bgSpeedMultiplier);
     drawOverdriveAtmosphere(bgMotionClock,horizon,vanishX,sunY,overdriveHeat);

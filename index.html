@@ -58,7 +58,7 @@
     <div class="load-error" id="load-error">Не удалось загрузить игровые ресурсы. Проверьте соединение и попробуйте ещё раз.</div>
     <button class="retry" id="retry-btn" type="button">ПОВТОРИТЬ ЗАГРУЗКУ</button>
   </main>
-  <iframe id="game-frame" src="./game.html" title="Cyber Tetris — игра" allow="autoplay; fullscreen" allowfullscreen></iframe>
+  <iframe id="game-frame" src="./game.html?v=15.1.2-no-atmosphere" title="Cyber Tetris — игра" allow="autoplay; fullscreen" allowfullscreen></iframe>
   <noscript><p style="position:fixed;z-index:10;top:50%;left:10%;right:10%;text-align:center">Для запуска Cyber Tetris необходимо включить JavaScript.</p></noscript>
   <script>
     (()=>{
@@ -113,7 +113,7 @@
       },22000);
       document.getElementById('retry-btn').addEventListener('click',()=>{
         document.body.classList.remove('load-failed','game-ready');ready=false;frameLoaded=false;progress=7;setProgress(7,'Повторно загружаем игровые ресурсы…');
-        const url=new URL('./game.html',location.href);url.searchParams.set('reload',Date.now());frame.src=url.toString();
+        const url=new URL('./game.html',location.href);url.searchParams.set('v','15.1.2-no-atmosphere');url.searchParams.set('reload',Date.now());frame.src=url.toString();
         slowTimer=window.setTimeout(()=>{if(!ready)document.body.classList.add('load-failed');},22000);
       });
     })();
