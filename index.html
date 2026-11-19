@@ -8,7 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#050711">
     <meta name="description" content="Кибертетрис — неоновая аркадная игра в стиле синтвейв">
-    <title>Кибертетрис — Неоновая аркада · Synthwave World v10</title>
+    <title>Кибертетрис — Неоновая аркада · Synthwave World v12</title>
     <style>
         :root {
             --neon-blue: #00f3ff;
@@ -1438,6 +1438,214 @@
             #top-bar button { -webkit-backdrop-filter:none; backdrop-filter:none; }
         }
 
+
+        /* ===== ANALOG CONSOLE CONTROL DECK ===== */
+        #mobile-controls {
+            display:none;
+            width:min(100%, 460px);
+            max-width:460px;
+            flex:0 0 auto;
+            flex-direction:column;
+            gap:9px;
+            padding:3px 5px max(env(safe-area-inset-bottom), 5px);
+            margin:0 auto;
+            user-select:none;
+            -webkit-user-select:none;
+            touch-action:none;
+        }
+        #mobile-controls.visible { display:flex; }
+        .mc-control-row { display:grid; gap:9px; min-width:0; }
+        .mc-control-primary { grid-template-columns:minmax(0,1.72fr) minmax(104px,.9fr); }
+        .mc-control-secondary { grid-template-columns:minmax(0,1fr) minmax(0,1.18fr); }
+        .mc-control-primary > *, .mc-control-secondary > * { grid-column:auto !important; grid-row:auto !important; }
+        #mc-rot, #mc-down, #mc-hard { grid-column:auto !important; grid-row:auto !important; }
+        .mc-stick {
+            position:relative;
+            min-width:0;
+            height:68px;
+            padding:7px 11px 6px;
+            overflow:hidden;
+            border:1px solid rgba(58,218,255,.62);
+            border-radius:13px;
+            background:
+                linear-gradient(180deg,rgba(24,48,77,.96),rgba(5,12,29,.98) 58%,rgba(3,8,20,.99));
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.13),inset 0 -5px 12px rgba(0,0,0,.65),0 4px 0 #06101d,0 6px 13px rgba(0,0,0,.42),0 0 15px rgba(0,217,255,.13);
+            touch-action:none;
+            cursor:ew-resize;
+        }
+        .mc-stick::before {
+            content:""; position:absolute; inset:1px; border-radius:11px; pointer-events:none;
+            background:linear-gradient(115deg,rgba(76,234,255,.12),transparent 35%,rgba(255,130,54,.08));
+        }
+        .mc-stick:focus-visible { outline:2px solid #ffb45e; outline-offset:3px; }
+        .mc-stick-top,.mc-stick-scale { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:6px; }
+        .mc-stick-top { color:#c9faff; font-size:.58rem; font-weight:900; letter-spacing:.15em; line-height:1; }
+        .mc-stick-hint { color:rgba(160,203,224,.62); font-size:.48rem; font-weight:700; letter-spacing:.09em; }
+        .mc-stick-rail {
+            position:relative; height:19px; margin:5px 7px 3px; border-radius:99px;
+            background:linear-gradient(180deg,rgba(0,0,0,.68),rgba(10,27,48,.92));
+            border:1px solid rgba(102,180,215,.23);
+            box-shadow:inset 0 2px 5px rgba(0,0,0,.8),0 1px 0 rgba(255,255,255,.07);
+        }
+        .mc-stick-rail::before {
+            content:""; position:absolute; left:50%; top:2px; bottom:2px; width:2px; transform:translateX(-50%);
+            background:linear-gradient(180deg,#ffc16b,#ff783c); box-shadow:0 0 7px rgba(255,151,69,.75); opacity:.8;
+        }
+        .mc-stick-arrow { position:absolute; top:1px; z-index:2; color:rgba(94,225,255,.7); font-size:.68rem; line-height:16px; pointer-events:none; }
+        .mc-stick-left { left:7px; } .mc-stick-right { right:7px; }
+        .mc-stick-center { position:absolute; left:50%; top:50%; width:5px; height:5px; border-radius:50%; transform:translate(-50%,-50%); background:#ffb25c; box-shadow:0 0 8px #ff9b4a; opacity:.85; }
+        .mc-stick-thumb {
+            position:absolute; left:50%; top:50%; width:30px; height:25px; margin-left:-15px; margin-top:-12.5px;
+            transform:translateX(var(--stick-x,0px)); border-radius:8px;
+            border:1px solid rgba(174,250,255,.88);
+            background:linear-gradient(180deg,#74efff 0%,#1685b8 38%,#075076 100%);
+            box-shadow:inset 0 2px 3px rgba(255,255,255,.55),inset 0 -4px 6px rgba(0,0,0,.3),0 2px 0 #05283b,0 0 11px rgba(42,224,255,.65);
+            pointer-events:none; will-change:transform;
+        }
+        .mc-stick-thumb i { position:absolute; left:5px; right:5px; top:4px; height:3px; border-radius:8px; background:rgba(255,255,255,.7); box-shadow:0 0 5px rgba(255,255,255,.5); }
+        .mc-stick-scale { color:rgba(143,186,211,.66); font-size:.43rem; font-weight:800; letter-spacing:.08em; line-height:1; }
+        .mc-btn {
+            position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+            min-width:0; height:68px; padding:5px 7px; border-radius:13px;
+            border:1px solid rgba(72,224,255,.68);
+            color:#d8fbff; font-family:inherit; font-weight:900; letter-spacing:.1em;
+            background:linear-gradient(180deg,rgba(31,64,93,.98),rgba(7,19,39,.99) 58%,rgba(3,9,22,1));
+            box-shadow:inset 0 1px 0 rgba(255,255,255,.17),inset 0 -5px 10px rgba(0,0,0,.58),0 4px 0 #06111f,0 7px 12px rgba(0,0,0,.38),0 0 13px rgba(0,220,255,.14);
+            text-shadow:0 0 9px rgba(62,225,255,.4);
+            touch-action:none; user-select:none; -webkit-user-select:none;
+            transition:transform .075s ease,box-shadow .075s ease,filter .075s ease;
+        }
+        .mc-btn::before { content:""; position:absolute; left:9px; right:9px; top:4px; height:2px; border-radius:8px; background:linear-gradient(90deg,transparent,rgba(255,255,255,.52),transparent); opacity:.8; }
+        .mc-btn:active,.mc-btn.pressed { transform:translateY(3px) scale(.985); filter:brightness(1.18); box-shadow:inset 0 2px 8px rgba(0,0,0,.48),0 1px 0 #06111f,0 0 17px rgba(0,226,255,.32); }
+        .mc-btn-icon { font-size:1.55rem; line-height:1; }
+        .mc-btn-label { font-size:.57rem; line-height:1.1; letter-spacing:.13em; }
+        .mc-rotate { border-color:rgba(57,222,255,.82); }
+        .mc-rotate .mc-btn-icon { font-size:1.85rem; }
+        .mc-control-secondary .mc-btn { height:54px; }
+        #mc-hard, #mc-down { height:54px; }
+        .mc-btn.pink,.mc-drop { color:#ffe8d5; border-color:rgba(255,139,73,.85); background:linear-gradient(180deg,#a94d38 0%,#5b1d28 48%,#1b1024 100%); box-shadow:inset 0 1px 0 rgba(255,231,205,.27),inset 0 -5px 10px rgba(0,0,0,.58),0 4px 0 #28101b,0 7px 12px rgba(0,0,0,.38),0 0 17px rgba(255,110,49,.22); text-shadow:0 0 10px rgba(255,151,79,.55); }
+        .mc-drop .mc-btn-icon { font-size:1.45rem; }
+        .mc-soft { border-color:rgba(95,223,255,.62); }
+        @media (max-width:380px) {
+            #mobile-controls { gap:7px; padding-left:3px; padding-right:3px; }
+            .mc-control-row { gap:7px; }
+            .mc-stick,.mc-btn { height:64px; border-radius:11px; }
+            .mc-control-secondary .mc-btn { height:52px; }
+            .mc-stick-top { font-size:.54rem; }
+            .mc-stick-hint { font-size:.43rem; }
+            .mc-btn-label { font-size:.53rem; }
+        }
+        @media (orientation:landscape) and (max-height:560px) and (max-width:1100px) {
+            #game-shell { gap:8px; }
+            #mobile-controls.visible { width:clamp(205px,27vw,250px); max-width:250px; gap:7px; padding:0; }
+            .mc-control-row { gap:7px; }
+            /* Keep the thumb rail wide enough for deliberate cell-by-cell travel on compact landscape phones. */
+            .mc-control-primary { grid-template-columns:minmax(0,2.2fr) minmax(88px,.8fr); }
+            .mc-stick,.mc-btn { height:61px; }
+            .mc-control-secondary .mc-btn { height:51px; }
+            .mc-stick-top { font-size:.49rem; }
+            .mc-stick-hint { font-size:.39rem; }
+            .mc-rotate { padding-left:4px; padding-right:4px; }
+            .mc-rotate .mc-btn-label { font-size:.48rem; letter-spacing:.06em; }
+        }
+        @media (max-width:760px), (pointer:coarse) {
+            .danger-card { padding:5px 5px 4px; border-radius:8px; min-width:0; }
+            .danger-card-head { font-size:.31rem; letter-spacing:0; gap:2px; }
+            .danger-card-head b { font-size:.44rem; letter-spacing:-.04em; }
+            .danger-meter { height:4px; margin-top:4px; }
+            .danger-card-foot { display:none; }
+        }
+        @media (max-width:380px) {
+            .danger-card { padding:4px; }
+            .danger-card-head { font-size:.29rem; letter-spacing:0; }
+            .danger-card-head b { font-size:.42rem; letter-spacing:-.04em; }
+        }
+        @media (prefers-reduced-motion:reduce) { .mc-btn { transition:none !important; } }
+
+
+
+        /* ===== V13: DANGER STATE, CAMERA LANGUAGE & OPTIONAL FLOATING JOYSTICK ===== */
+        #top-bar { gap:6px; }
+        #settings-btn { color:#ffca83 !important; border-color:rgba(255,175,100,.32) !important; }
+        .danger-card {
+            display:none; width:100%; padding:8px 10px 7px; border-radius:10px;
+            border:1px solid rgba(255,92,78,.42);
+            background:linear-gradient(145deg,rgba(72,20,42,.72),rgba(12,12,30,.94));
+            box-shadow:inset 0 1px 0 rgba(255,190,170,.10),0 5px 14px rgba(0,0,0,.28),0 0 15px rgba(255,57,76,.08);
+            transform:translateZ(0); opacity:0;
+        }
+        .danger-card.active { display:block; opacity:1; animation:dangerCardIn .32s ease-out both; }
+        .danger-card.critical { border-color:rgba(255,66,55,.8); box-shadow:inset 0 1px 0 rgba(255,190,170,.15),0 5px 14px rgba(0,0,0,.3),0 0 22px rgba(255,42,54,.22); }
+        .danger-card-head { display:flex; align-items:center; justify-content:space-between; gap:7px; color:#ffb1a0; font-size:.58rem; font-weight:950; letter-spacing:.13em; }
+        .danger-card-head b { color:#ffe5d1; font:900 .72rem 'Courier New',monospace; }
+        .danger-meter { height:5px; margin-top:6px; border-radius:99px; overflow:hidden; background:rgba(0,0,0,.55); box-shadow:inset 0 1px 3px rgba(0,0,0,.7); }
+        .danger-meter i { display:block; height:100%; width:0; border-radius:inherit; background:linear-gradient(90deg,#ffb34c,#ff593e 65%,#ff2e5c); box-shadow:0 0 9px rgba(255,67,65,.8); transition:width .12s linear; }
+        .danger-card-foot { margin-top:5px; color:rgba(255,175,160,.55); font-size:.42rem; font-weight:800; letter-spacing:.12em; }
+        #game-container.danger-warning { border-color:rgba(255,83,67,calc(.28 + var(--danger-heat,0)*.62)); box-shadow:0 0 0 1px rgba(0,0,0,.82),0 0 0 4px rgba(13,25,48,.72),0 0 32px rgba(0,214,255,.10),0 0 calc(24px + var(--danger-heat,0)*30px) rgba(255,49,67,calc(var(--danger-heat,0)*.22)),0 24px 58px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.14); }
+        #game-container.danger-critical .arena-bezel { box-shadow:inset 0 0 42px rgba(0,0,0,.94),inset 0 0 18px rgba(255,50,66,.10),0 0 18px rgba(255,43,61,.18),0 4px 12px rgba(0,0,0,.44); }
+        #game-container.danger-critical .danger-card { animation:dangerHeartbeat 1.15s ease-in-out infinite; }
+        @keyframes dangerCardIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes dangerHeartbeat { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.22)} }
+
+        .settings-screen { gap:11px; }
+        body.settings-active #mobile-controls { visibility:hidden !important; pointer-events:none !important; }
+        .settings-card { width:min(100%,440px); padding:12px 14px; border-radius:13px; border:1px solid rgba(88,210,255,.27); background:linear-gradient(150deg,rgba(20,39,70,.78),rgba(4,10,26,.91)); box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 8px 18px rgba(0,0,0,.25); }
+        .settings-title { display:flex; align-items:center; justify-content:space-between; gap:10px; color:#c7f4ff; font-size:.61rem; font-weight:950; letter-spacing:.13em; }
+        .settings-title b { color:#ffbd79; font:900 .75rem 'Courier New',monospace; }
+        .settings-mode-grid { display:grid; grid-template-columns:1fr 1.25fr; gap:8px; margin-top:9px; }
+        .settings-mode-btn { min-height:43px; padding:8px 9px; font-size:.58rem; }
+        .settings-mode-btn.selected { border-color:rgba(255,174,94,.78); color:#ffe1bb; background:linear-gradient(145deg,rgba(130,66,49,.72),rgba(33,18,34,.95)); box-shadow:inset 0 1px 0 rgba(255,226,195,.18),0 0 15px rgba(255,125,62,.18); }
+        .settings-current { margin-top:7px; color:rgba(169,201,225,.68); font-size:.55rem; line-height:1.45; }
+        .settings-range { display:block; width:100%; margin:11px 0 3px; accent-color:#ff9c57; touch-action:pan-y; }
+        .settings-range-labels { display:flex; justify-content:space-between; color:rgba(145,188,213,.58); font-size:.43rem; font-weight:900; letter-spacing:.12em; }
+        .settings-haptics-row { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .settings-toggle { min-width:66px; min-height:39px; }
+        .settings-toggle.off { color:#a2b2c8; border-color:rgba(125,146,174,.28); background:linear-gradient(145deg,rgba(37,47,65,.72),rgba(9,14,28,.95)); }
+
+        .mc-slider-layout { display:flex; flex-direction:column; gap:9px; width:100%; }
+        .mc-joystick-layout { width:100%; display:flex; align-items:center; justify-content:center; min-height:148px; }
+        .mc-joystick-pad {
+            position:relative; width:clamp(136px,39vw,168px); height:clamp(136px,39vw,168px); flex:0 0 auto;
+            border-radius:50%; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none;
+            border:1px solid rgba(100,222,255,.65);
+            background:radial-gradient(circle at 50% 42%,rgba(26,67,103,.82),rgba(6,17,38,.97) 64%,rgba(2,8,22,.99));
+            box-shadow:inset 0 2px 7px rgba(255,255,255,.11),inset 0 -10px 24px rgba(0,0,0,.72),0 5px 0 #071322,0 12px 22px rgba(0,0,0,.42),0 0 22px rgba(0,214,255,.15);
+        }
+        .mc-joystick-pad::before,.mc-joystick-pad::after { content:""; position:absolute; pointer-events:none; left:50%; top:50%; transform:translate(-50%,-50%); background:rgba(80,179,222,.13); }
+        .mc-joystick-pad::before { width:1px; height:78%; }
+        .mc-joystick-pad::after { height:1px; width:78%; }
+        .mc-joy-arrow { position:absolute; z-index:1; color:rgba(145,228,250,.65); font-size:.78rem; font-weight:900; line-height:1; text-shadow:0 0 8px rgba(41,213,255,.3); pointer-events:none; }
+        .mc-joy-arrow small { display:block; margin-top:3px; color:rgba(177,218,235,.55); font-size:.34rem; letter-spacing:.08em; text-align:center; }
+        .mc-joy-up { top:8px; left:50%; transform:translateX(-50%); text-align:center; }
+        .mc-joy-left { left:9px; top:50%; transform:translateY(-50%); }
+        .mc-joy-right { right:9px; top:50%; transform:translateY(-50%); }
+        .mc-joy-down { bottom:8px; left:50%; transform:translateX(-50%); text-align:center; }
+        .mc-joy-origin { position:absolute; z-index:3; left:50%; top:50%; width:92px; height:92px; transform:translate(-50%,-50%); border-radius:50%; border:1px solid rgba(122,221,246,.30); background:radial-gradient(circle,rgba(18,39,65,.54),rgba(5,13,29,.25)); box-shadow:inset 0 0 14px rgba(0,0,0,.44),0 0 0 1px rgba(0,0,0,.24); pointer-events:none; }
+        .mc-joy-nub { position:absolute; left:50%; top:50%; width:47px; height:47px; transform:translate(calc(-50% + var(--joy-x,0px)),calc(-50% + var(--joy-y,0px))); border-radius:50%; border:1px solid rgba(191,249,255,.88); background:linear-gradient(155deg,#a7f8ff 0%,#27b8e4 34%,#07527f 100%); box-shadow:inset 0 2px 5px rgba(255,255,255,.58),inset 0 -7px 10px rgba(0,0,0,.36),0 4px 0 #052b45,0 7px 15px rgba(0,0,0,.48),0 0 15px rgba(38,216,255,.6); }
+        .mc-joy-nub i { position:absolute; left:7px; right:7px; top:6px; height:5px; border-radius:99px; background:rgba(255,255,255,.72); box-shadow:0 0 6px rgba(255,255,255,.6); }
+        .mc-joy-tap-hint { position:absolute; left:50%; bottom:31px; transform:translateX(-50%); z-index:4; color:rgba(255,191,132,.82); font-size:.42rem; font-weight:950; white-space:nowrap; letter-spacing:.12em; text-shadow:0 0 8px rgba(255,122,52,.38); pointer-events:none; }
+        .mc-joystick-pad.active { border-color:rgba(255,172,100,.9); box-shadow:inset 0 2px 7px rgba(255,255,255,.12),inset 0 -10px 24px rgba(0,0,0,.72),0 5px 0 #071322,0 12px 22px rgba(0,0,0,.42),0 0 25px rgba(255,132,74,.2); }
+        @media (max-width:380px) {
+            .mc-joystick-layout { min-height:136px; }
+            .mc-joystick-pad { width:136px; height:136px; }
+            .mc-joy-origin { width:84px; height:84px; }
+            .mc-joy-nub { width:43px; height:43px; }
+            .mc-joy-tap-hint { bottom:26px; }
+            .settings-card { padding:10px 11px; }
+            .settings-mode-btn { font-size:.51rem; padding:7px 5px; }
+        }
+        @media (orientation:landscape) and (max-height:560px) and (max-width:1100px) {
+            .mc-joystick-layout { min-height:130px; }
+            .mc-joystick-pad { width:126px; height:126px; }
+            .mc-joy-origin { width:78px; height:78px; }
+            .mc-joy-nub { width:40px; height:40px; }
+            .mc-joy-tap-hint { bottom:24px; }
+        }
+        @media (prefers-reduced-motion:reduce) {
+            #game-container.danger-critical .danger-card { animation:none; }
+            .danger-card.active { animation:none; opacity:1; }
+        }
+
 </style>
 </head>
 <body>
@@ -1447,6 +1655,7 @@
     <div id="game-container">
         <div id="top-bar">
             <button id="pause-btn" type="button" aria-label="Пауза" title="Пауза (P)" hidden>Ⅱ</button>
+            <button id="settings-btn" type="button" aria-label="Настройки" title="Настройки">⚙</button>
             <button id="mute-btn" type="button" aria-label="Выключить звук" title="Звук">♫</button>
             <button id="fs-btn" type="button" aria-label="Полный экран" title="Полный экран">⛶</button>
         </div>
@@ -1472,6 +1681,11 @@
                     <div id="lines" class="stat-value">0</div>
                 </section>
             </div>
+            <section id="danger-card" class="danger-card" aria-live="polite" aria-label="Уровень опасности">
+                <div class="danger-card-head"><span id="danger-label">СТОПКА РАСТЁТ</span><b id="danger-percent">0%</b></div>
+                <div class="danger-meter"><i id="danger-meter-fill"></i></div>
+                <div class="danger-card-foot">КРИТИЧЕСКАЯ ВЫСОТА ПОЛЯ</div>
+            </section>
             <section class="preview-card">
                 <div class="preview-head"><span>СЛЕДУЮЩАЯ</span><i class="preview-live"></i></div>
                 <canvas id="next" width="100" height="100" class="small"></canvas>
@@ -1545,15 +1759,67 @@
             <div id="challenges-list" class="challenge-list"></div>
             <button class="main-btn" id="challenges-back-btn" type="button">Назад</button>
         </div>
+
+        <div id="settings-screen" class="overlay hidden meta-screen settings-screen">
+            <h1>НАСТРОЙКИ</h1>
+            <section class="settings-card">
+                <div class="settings-title">МОБИЛЬНОЕ УПРАВЛЕНИЕ</div>
+                <div class="settings-mode-grid">
+                    <button id="control-mode-slider" class="secondary-btn settings-mode-btn" type="button">СЛАЙДЕР</button>
+                    <button id="control-mode-joystick" class="secondary-btn settings-mode-btn" type="button">ПЛАВАЮЩИЙ ДЖОЙСТИК</button>
+                </div>
+                <div class="settings-current" id="control-mode-description">Слайдер: сдвиг пальца перемещает фигуру по клеткам.</div>
+            </section>
+            <section class="settings-card">
+                <div class="settings-title"><label for="control-sensitivity">ЧУВСТВИТЕЛЬНОСТЬ УПРАВЛЕНИЯ</label><b id="control-sensitivity-value">100%</b></div>
+                <input id="control-sensitivity" class="settings-range" type="range" min="70" max="150" step="5" value="100">
+                <div class="settings-range-labels"><span>ТОЧНЕЕ</span><span>БЫСТРЕЕ</span></div>
+            </section>
+            <section class="settings-card settings-haptics-row">
+                <div><div class="settings-title">ТАКТИЛЬНЫЙ ОТКЛИК</div><div class="settings-current" id="haptics-support-note">Короткая вибрация при важных действиях</div></div>
+                <button id="haptics-toggle" class="secondary-btn settings-toggle" type="button" aria-pressed="true">ВКЛ</button>
+            </section>
+            <button class="main-btn" id="settings-back-btn" type="button">ГОТОВО</button>
+        </div>
     </div>
 
-    <!-- Mobile touch controls -->
-    <div id="mobile-controls" role="group" aria-label="Сенсорное управление">
-        <button class="mc-btn" id="mc-rot" type="button" aria-label="Повернуть" title="Поворот">↻</button>
-        <button class="mc-btn pink" id="mc-hard" type="button" aria-label="Мгновенно сбросить фигуру" title="Мгновенное падение">БРОСОК</button>
-        <button class="mc-btn" id="mc-left" type="button" aria-label="Двигать влево" title="Влево">◀</button>
-        <button class="mc-btn" id="mc-down" type="button" aria-label="Ускорить падение" title="Ускорить">▼</button>
-        <button class="mc-btn" id="mc-right" type="button" aria-label="Двигать вправо" title="Вправо">▶</button>
+    <!-- Two alternative console layouts: analog slider or floating four-way joystick. -->
+    <div id="mobile-controls" role="group" aria-label="Игровое сенсорное управление">
+      <div id="mc-slider-layout" class="mc-slider-layout">
+        <div class="mc-control-row mc-control-primary">
+            <div id="mc-stick" class="mc-stick" role="slider" tabindex="0" aria-label="Горизонтальное перемещение фигуры" aria-valuemin="-4" aria-valuemax="4" aria-valuenow="0">
+                <div class="mc-stick-top"><span>ДВИЖЕНИЕ</span><span class="mc-stick-hint">СДВИГАЙ ПАЛЕЦ</span></div>
+                <div class="mc-stick-rail">
+                    <span class="mc-stick-arrow mc-stick-left">◀</span>
+                    <span class="mc-stick-center"></span>
+                    <span class="mc-stick-arrow mc-stick-right">▶</span>
+                    <span id="mc-stick-thumb" class="mc-stick-thumb"><i></i></span>
+                </div>
+                <div class="mc-stick-scale"><span>◀ ВЛЕВО</span><span>НЕЙТРАЛЬ</span><span>ВПРАВО ▶</span></div>
+            </div>
+            <button class="mc-btn mc-rotate" id="mc-rot" type="button" aria-label="Повернуть фигуру" title="Поворот">
+                <span class="mc-btn-icon">↻</span><span class="mc-btn-label">ПОВОРОТ</span>
+            </button>
+        </div>
+        <div class="mc-control-row mc-control-secondary">
+            <button class="mc-btn mc-soft" id="mc-down" type="button" aria-label="Мягкое ускорение падения" title="Ускорить падение">
+                <span class="mc-btn-icon">▼</span><span class="mc-btn-label">УСКОРИТЬ</span>
+            </button>
+            <button class="mc-btn pink mc-drop" id="mc-hard" type="button" aria-label="Мгновенно сбросить фигуру" title="Мгновенное падение">
+                <span class="mc-btn-icon">⇊</span><span class="mc-btn-label">БРОСОК</span>
+            </button>
+        </div>
+      </div>
+      <div id="mc-joystick-layout" class="mc-joystick-layout hidden">
+        <div id="mc-joystick-pad" class="mc-joystick-pad" role="application" aria-label="Плавающий джойстик: вверх поворот, влево и вправо перемещение, вниз ускорение, тап — бросок">
+            <span class="mc-joy-arrow mc-joy-up">▲ <small>ПОВОРОТ</small></span>
+            <span class="mc-joy-arrow mc-joy-left">◀</span>
+            <span class="mc-joy-arrow mc-joy-right">▶</span>
+            <span class="mc-joy-arrow mc-joy-down">▼ <small>ПАДЕНИЕ</small></span>
+            <div id="mc-joy-origin" class="mc-joy-origin"><div id="mc-joy-nub" class="mc-joy-nub"><i></i></div></div>
+            <div class="mc-joy-tap-hint">ТАП — БРОСОК</div>
+        </div>
+      </div>
     </div>
 </div>
 
@@ -1989,6 +2255,18 @@ function drawBackground(t) {
     bgCtx.fill();
     bgCtx.shadowBlur = 0;
 
+    // The solar disc shifts from orange to warning crimson as the stack approaches the ceiling.
+    if (dangerHeat > .015) {
+        bgCtx.save();
+        bgCtx.beginPath(); bgCtx.arc(vanishX,sunY,sunR,0,Math.PI*2); bgCtx.clip();
+        const dangerTint=bgCtx.createLinearGradient(0,sunY-sunR,0,sunY+sunR);
+        dangerTint.addColorStop(0,`rgba(255,42,62,${dangerHeat*.13})`);
+        dangerTint.addColorStop(.58,`rgba(255,30,55,${dangerHeat*.22})`);
+        dangerTint.addColorStop(1,`rgba(170,12,68,${dangerHeat*.32})`);
+        bgCtx.fillStyle=dangerTint; bgCtx.fillRect(vanishX-sunR,sunY-sunR,sunR*2,sunR*2);
+        bgCtx.restore();
+    }
+
     // Classic horizontal synthwave slices, with wider gaps toward the lower half.
     bgCtx.save();
     bgCtx.beginPath();
@@ -2101,6 +2379,25 @@ function drawBackground(t) {
     vig.addColorStop(1, 'rgba(0,0,0,0.55)');
     bgCtx.fillStyle = vig;
     bgCtx.fillRect(0, 0, bgW, bgH);
+
+    // A restrained danger vignette and edge warning lines; the center remains readable.
+    if (dangerHeat > .015) {
+        const pulse = .82 + Math.sin(t * .0062) * .18;
+        const a = dangerHeat * (.10 + pulse * .055);
+        const dangerVignette = bgCtx.createRadialGradient(bgW*.5,bgH*.46,bgH*.20,bgW*.5,bgH*.46,bgH*.92);
+        dangerVignette.addColorStop(0,'rgba(255,38,52,0)');
+        dangerVignette.addColorStop(.62,`rgba(255,34,58,${a*.18})`);
+        dangerVignette.addColorStop(1,`rgba(255,24,48,${a})`);
+        bgCtx.fillStyle=dangerVignette; bgCtx.fillRect(0,0,bgW,bgH);
+        if (dangerHeat > .48) {
+            bgCtx.save();
+            bgCtx.globalAlpha=(dangerHeat-.48)*.42*pulse;
+            bgCtx.strokeStyle='#ff5362'; bgCtx.lineWidth=1;
+            const bandY=(t*.045)%(bgH+80)-40;
+            bgCtx.beginPath(); bgCtx.moveTo(0,bandY); bgCtx.lineTo(bgW,bandY+bgW*.012); bgCtx.stroke();
+            bgCtx.restore();
+        }
+    }
 }
 
 // ===================== GAME CANVAS =====================
@@ -2118,19 +2415,25 @@ nCtx.scale(20, 20);
 
 const COLORS = [null, '#FF0D72', '#0DC2FF', '#0DFF72', '#F538FF', '#FF8E0D', '#FFE138', '#3877FF'];
 
-// ===================== AUDIO: ORIGINAL SYNTHWAVE ENGINE =====================
+// ===================== AUDIO: LEVEL-ROTATING CYBER SOUNDTRACK =====================
 let audioCtx = null, masterGain = null, musicGain = null, sfxGain = null;
 let musicPlaying = false, musicTimer = null, muted = false, musicStep = 0, nextMusicTime = 0;
 let noiseBuffer = null;
-const gameMusicLow = new Audio('./assets/audio/music/kalinka-synthwave-main.mp3');
-const gameMusicHigh = new Audio('./assets/audio/music/kalinka-synthwave-overdrive.mp3');
-[gameMusicLow, gameMusicHigh].forEach(a => { a.loop = true; a.preload = 'none'; a.volume = 0; });
-let externalMusicActive = false, externalMusicBlend = 0, musicStartToken = 0;
-let musicBuffersPromise = null, musicBuffers = null, musicEncodedFilesPromise = null, musicAssetFormat = 'ogg';
+const MUSIC_TRACKS = [
+    { id:'kalinka-synthwave-remix', title:'КАЛИНКА SYNTHWAVE', bpm:152, ogg:'./assets/audio/music/kalinka-synthwave-remix.ogg', mp3:'./assets/audio/music/kalinka-synthwave-remix.mp3' },
+    { id:'korobeiniki-turbo', title:'КОРОБЕЙНИКИ TURBO', bpm:148, ogg:'./assets/audio/music/korobeiniki-turbo.ogg', mp3:'./assets/audio/music/korobeiniki-turbo.mp3' },
+    { id:'trepak-rave', title:'ТРЕПАК RAVE', bpm:160, ogg:'./assets/audio/music/trepak-rave.ogg', mp3:'./assets/audio/music/trepak-rave.mp3' },
+    { id:'cyber-overdrive', title:'CYBER OVERDRIVE 2088', bpm:140, ogg:'./assets/audio/music/cyber-overdrive.ogg', mp3:'./assets/audio/music/cyber-overdrive.mp3' },
+    { id:'bumblebee-dnb', title:'ПОЛЁТ ШМЕЛЯ DnB', bpm:174, ogg:'./assets/audio/music/bumblebee-dnb.ogg', mp3:'./assets/audio/music/bumblebee-dnb.mp3' }
+];
+const MUSIC_LOOP_START = 2.0;
+let currentMusicTrackIndex = 0;
+let externalMusicActive = false, musicStartToken = 0, musicTrackSwitchToken = 0;
+let musicBufferCache = new Map(), musicBufferPromises = new Map();
 let musicBufferSources = [], musicLayerGains = [];
 let musicSourceStartedAt = 0, musicTimelineOffset = 0, musicResumeOffset = 0;
-const MUSIC_LOOP_START = .75; // tail is crossfaded into the opening pickup; loop resumes just after it
-const MUSIC_LOOP_END = 96.75; // exact rendered PCM boundary; excludes Vorbis encoder padding
+let fallbackMusicAudios = MUSIC_TRACKS.map(track => { const audio=new Audio(track.mp3); audio.loop=true; audio.preload='none'; audio.volume=0; return audio; });
+let fallbackMusicFadeTimer=null, fallbackMusicIndex=-1;
 let activeSfxVoices = [];
 const externalSfx = {
     harddrop: new Audio('./assets/audio/sfx/harddrop.wav'),
@@ -2157,129 +2460,165 @@ function stopAssetSfx() {
     activeSfxVoices.forEach(voice => { try { voice.pause(); voice.currentTime = 0; } catch (_) {} });
     activeSfxVoices = [];
 }
-function updateExternalMusicBlend(delta = 16.667) {
-    if (!externalMusicActive || !musicPlaying || muted) return;
-    const target = Math.max(0,Math.min(1,(Math.max(1,player.level)-1)/7));
-    const blend = 1 - Math.exp(-Math.max(0,delta) / 1650);
-    externalMusicBlend += (target-externalMusicBlend)*blend;
-    const now = audioCtx ? audioCtx.currentTime : 0;
-    if (musicLayerGains.length === 2 && audioCtx) {
-        // Web Audio gain automation avoids the tiny stepped volume changes of HTMLAudio.volume.
-        musicLayerGains[0].gain.setTargetAtTime(1.34 * (1-externalMusicBlend), now, .10);
-        musicLayerGains[1].gain.setTargetAtTime(1.34 * externalMusicBlend, now, .10);
-    } else {
-        const total = .57;
-        gameMusicLow.volume = total * (1-externalMusicBlend);
-        gameMusicHigh.volume = total * externalMusicBlend;
-    }
+function musicTrackIndexForLevel(level) {
+    return ((Math.max(1,Number(level)||1)-1) % MUSIC_TRACKS.length);
 }
-
-function loadMusicFiles() {
-    if (!musicEncodedFilesPromise) {
-        musicEncodedFilesPromise = Promise.all([
-            './assets/audio/music/kalinka-synthwave-main.ogg',
-            './assets/audio/music/kalinka-synthwave-overdrive.ogg'
-        ].map(async url => {
-            const response = await fetch(url, { cache: 'force-cache' });
-            if (!response.ok) throw new Error(`Не удалось загрузить музыку: ${response.status}`);
-            return await response.arrayBuffer();
-        })).catch(error => {
-            musicEncodedFilesPromise = null;
-            throw error;
-        });
-    }
-    return musicEncodedFilesPromise;
+async function loadMusicTrackBuffer(index) {
+    index = ((index % MUSIC_TRACKS.length)+MUSIC_TRACKS.length)%MUSIC_TRACKS.length;
+    if (musicBufferCache.has(index)) return musicBufferCache.get(index);
+    if (musicBufferPromises.has(index)) return musicBufferPromises.get(index);
+    const track=MUSIC_TRACKS[index];
+    const promise=(async()=>{
+        let response, data, decoded;
+        try {
+            response=await fetch(track.ogg,{cache:'force-cache'});
+            if(!response.ok) throw new Error(`OGG ${response.status}`);
+            data=await response.arrayBuffer();
+            decoded=await audioCtx.decodeAudioData(data.slice(0));
+        } catch(oggError) {
+            response=await fetch(track.mp3,{cache:'force-cache'});
+            if(!response.ok) throw new Error(`MP3 ${response.status}`);
+            data=await response.arrayBuffer();
+            decoded=await audioCtx.decodeAudioData(data.slice(0));
+        }
+        musicBufferCache.set(index,decoded);
+        // Keep only the active song and its next-in-rotation neighbour decoded in RAM.
+        for(const key of [...musicBufferCache.keys()]) {
+            if(key!==currentMusicTrackIndex && key!==index && musicBufferCache.size>2) musicBufferCache.delete(key);
+        }
+        return decoded;
+    })().finally(()=>musicBufferPromises.delete(index));
+    musicBufferPromises.set(index,promise);
+    return promise;
 }
-async function loadMusicBuffers() {
-    if (musicBuffers) return musicBuffers;
-    if (!musicBuffersPromise) {
-        musicBuffersPromise = (async () => {
-            try {
-                const oggFiles = await loadMusicFiles();
-                const decoded = await Promise.all(oggFiles.map(data => audioCtx.decodeAudioData(data.slice(0))));
-                musicAssetFormat = 'ogg';
-                return decoded;
-            } catch (oggError) {
-                // MP3 is the compatibility decoder fallback; it is still decoded into AudioBuffer,
-                // so the sample-accurate loop remains gapless rather than reverting to HTMLAudio.loop.
-                const mp3Urls = [
-                    './assets/audio/music/kalinka-synthwave-main.mp3',
-                    './assets/audio/music/kalinka-synthwave-overdrive.mp3'
-                ];
-                const mp3Files = await Promise.all(mp3Urls.map(async url => {
-                    const response = await fetch(url, { cache:'force-cache' });
-                    if (!response.ok) throw new Error(`Не удалось загрузить резервную музыку: ${response.status}`);
-                    return await response.arrayBuffer();
-                }));
-                const decoded = await Promise.all(mp3Files.map(data => audioCtx.decodeAudioData(data.slice(0))));
-                musicAssetFormat = 'mp3';
-                return decoded;
-            }
-        })().then(buffers => {
-            musicBuffers = buffers;
-            return buffers;
-        }).catch(error => {
-            musicBuffersPromise = null;
-            throw error;
-        });
-    }
-    return musicBuffersPromise;
+function preloadNextMusicTrack() {
+    if(!audioCtx) return;
+    const next=(currentMusicTrackIndex+1)%MUSIC_TRACKS.length;
+    loadMusicTrackBuffer(next).catch(()=>{});
 }
-// Begin fetching compressed music while the player is still on the title screen.
-// Decoding waits until the first user gesture has created/resumed the AudioContext.
-loadMusicFiles().catch(() => {});
-
 function stopMusicBufferSources() {
-    musicBufferSources.forEach(source => {
-        try { source.onended = null; source.stop(); } catch (_) {}
+    const sources=[...musicBufferSources];
+    musicBufferSources=[];
+    musicLayerGains=[];
+    sources.forEach(source=>{
+        try { source.onended=null; source.stop(); } catch (_) {}
         try { source.disconnect(); } catch (_) {}
     });
-    musicLayerGains.forEach(gain => { try { gain.disconnect(); } catch (_) {} });
-    musicBufferSources = [];
-    musicLayerGains = [];
 }
-
 function getMusicTimelinePosition() {
-    if (!audioCtx || !musicBufferSources.length || !musicPlaying) return musicResumeOffset;
-    return Math.max(0, musicTimelineOffset + audioCtx.currentTime - musicSourceStartedAt);
+    if (!audioCtx || !musicBufferSources.length || !musicPlaying) {
+        if(fallbackMusicIndex>=0 && Number.isFinite(fallbackMusicAudios[fallbackMusicIndex]?.currentTime)) return fallbackMusicAudios[fallbackMusicIndex].currentTime;
+        return musicResumeOffset;
+    }
+    return Math.max(0,musicTimelineOffset+audioCtx.currentTime-musicSourceStartedAt);
 }
-
-function loopPlaybackOffset(position, duration) {
-    const loopStart = Math.min(MUSIC_LOOP_START, Math.max(.05, duration * .04));
-    const loopEnd = Math.min(MUSIC_LOOP_END, duration);
-    if (position < loopEnd) return Math.max(0, position);
-    const loopLength = Math.max(.1, loopEnd - loopStart);
-    return loopStart + ((position - loopEnd) % loopLength);
+function loopPlaybackOffset(position,duration) {
+    const loopStart=Math.min(MUSIC_LOOP_START,Math.max(.05,duration*.03));
+    const loopEnd=Math.max(loopStart+.1,duration-.025);
+    if(position<loopEnd) return Math.max(0,position);
+    const loopLength=Math.max(.1,loopEnd-loopStart);
+    return loopStart+((position-loopEnd)%loopLength);
 }
-
-function startMusicBufferPlayback(buffers, offset = 0) {
-    if (!audioCtx || !musicPlaying || !buffers || buffers.length !== 2) return false;
+function makeMusicBufferSource(index,buffer,offset,startAt,fadeIn=0) {
+    const source=audioCtx.createBufferSource();
+    const gain=audioCtx.createGain();
+    source.buffer=buffer;
+    source.loop=true;
+    source.loopStart=Math.min(MUSIC_LOOP_START,Math.max(.05,buffer.duration*.03));
+    source.loopEnd=Math.max(source.loopStart+.1,buffer.duration-.025);
+    if(fadeIn>0) {
+        gain.gain.setValueAtTime(.0001,startAt);
+        gain.gain.linearRampToValueAtTime(.86,startAt+fadeIn);
+    } else gain.gain.setValueAtTime(.86,startAt);
+    source.connect(gain); gain.connect(musicGain);
+    source.start(startAt,loopPlaybackOffset(offset,buffer.duration));
+    musicBufferSources.push(source); musicLayerGains.push(gain);
+    source.onended=()=>{
+        const i=musicBufferSources.indexOf(source);
+        if(i>=0){musicBufferSources.splice(i,1);const g=musicLayerGains.splice(i,1)[0];try{g?.disconnect();}catch(_){} }
+    };
+    return {source,gain};
+}
+function startMusicBufferPlayback(index,buffer,offset=0) {
+    if(!audioCtx || !musicPlaying || !buffer) return false;
     stopMusicBufferSources();
-    const startAt = audioCtx.currentTime + .055;
-    const initialBlend = Math.max(0,Math.min(1,(Math.max(1,player.level)-1)/7));
-    buffers.forEach((buffer, index) => {
-        const source = audioCtx.createBufferSource();
-        const layerGain = audioCtx.createGain();
-        source.buffer = buffer;
-        source.loop = true;
-        source.loopStart = Math.min(MUSIC_LOOP_START, Math.max(.05, buffer.duration * .04));
-        source.loopEnd = Math.min(MUSIC_LOOP_END, buffer.duration);
-        layerGain.gain.setValueAtTime(index === 0 ? 1.34*(1-initialBlend) : 1.34*initialBlend, startAt);
-        source.connect(layerGain);
-        layerGain.connect(musicGain);
-        const startOffset = loopPlaybackOffset(offset, buffer.duration);
-        source.start(startAt, startOffset);
-        musicBufferSources.push(source);
-        musicLayerGains.push(layerGain);
-    });
-    musicSourceStartedAt = startAt;
-    musicTimelineOffset = offset;
-    musicResumeOffset = offset;
-    externalMusicBlend = initialBlend;
-    externalMusicActive = true;
+    const startAt=audioCtx.currentTime+.055;
+    makeMusicBufferSource(index,buffer,offset,startAt,.55);
+    currentMusicTrackIndex=index;
+    musicSourceStartedAt=startAt;
+    musicTimelineOffset=offset;
+    musicResumeOffset=offset;
+    externalMusicActive=true;
+    preloadNextMusicTrack();
     return true;
 }
-
+function stopFallbackMusic() {
+    if(fallbackMusicFadeTimer){clearInterval(fallbackMusicFadeTimer);fallbackMusicFadeTimer=null;}
+    fallbackMusicAudios.forEach(a=>{try{a.pause();a.volume=0;}catch(_){}});
+    fallbackMusicIndex=-1;
+}
+function playFallbackMusic(index,offset=0,crossfade=false) {
+    const next=fallbackMusicAudios[index];
+    if(!next) return false;
+    if(fallbackMusicFadeTimer){clearInterval(fallbackMusicFadeTimer);fallbackMusicFadeTimer=null;}
+    const previous=fallbackMusicIndex>=0?fallbackMusicAudios[fallbackMusicIndex]:null;
+    try { next.currentTime=offset % (Number.isFinite(next.duration)&&next.duration>0?next.duration:150); } catch(_) {}
+    next.volume=crossfade?0:.58;
+    next.play().catch(()=>{});
+    fallbackMusicIndex=index;
+    if(crossfade && previous && previous!==next) {
+        const start=performance.now(),duration=1900,from=previous.volume;
+        fallbackMusicFadeTimer=setInterval(()=>{
+            const p=Math.min(1,(performance.now()-start)/duration);
+            previous.volume=from*(1-p); next.volume=.58*p;
+            if(p>=1){clearInterval(fallbackMusicFadeTimer);fallbackMusicFadeTimer=null;try{previous.pause();previous.currentTime=0;}catch(_){}}
+        },30);
+    }
+    return true;
+}
+function switchMusicTrackForLevel() {
+    const nextIndex=musicTrackIndexForLevel(player.level);
+    if(nextIndex===currentMusicTrackIndex) return;
+    const token=++musicTrackSwitchToken;
+    if(!musicPlaying || muted) { currentMusicTrackIndex=nextIndex; return; }
+    if(!audioCtx || !musicGain) { const old=fallbackMusicIndex; currentMusicTrackIndex=nextIndex; playFallbackMusic(nextIndex,0,old>=0); return; }
+    loadMusicTrackBuffer(nextIndex).then(buffer=>{
+        if(token!==musicTrackSwitchToken || !musicPlaying || muted) return;
+        const now=audioCtx.currentTime;
+        const oldIndex=currentMusicTrackIndex;
+        const oldBpm=MUSIC_TRACKS[oldIndex]?.bpm || 150;
+        const oldPos=getMusicTimelinePosition();
+        const oldLoopTime=oldPos>MUSIC_LOOP_START ? (MUSIC_LOOP_START+((oldPos-MUSIC_LOOP_START)%Math.max(.1,(musicBufferSources[musicBufferSources.length-1]?.buffer?.duration||oldPos+120)-MUSIC_LOOP_START))) : oldPos;
+        const beatPhase=(oldLoopTime*oldBpm/60)%4;
+        let delay=((4-beatPhase)%4)*60/oldBpm;
+        if(delay<.10) delay+=4*60/oldBpm;
+        delay=Math.min(1.75,Math.max(.08,delay));
+        const startAt=now+delay,fade=2.25;
+        musicBufferSources.forEach((source,i)=>{
+            const gain=musicLayerGains[i];
+            if(!gain) return;
+            const current=Math.max(.0001,gain.gain.value);
+            gain.gain.cancelScheduledValues(now);
+            gain.gain.setValueAtTime(current,now);
+            gain.gain.setValueAtTime(current,startAt);
+            gain.gain.linearRampToValueAtTime(.0001,startAt+fade);
+            try{source.stop(startAt+fade+.08);}catch(_){}
+        });
+        makeMusicBufferSource(nextIndex,buffer,0,startAt,fade);
+        currentMusicTrackIndex=nextIndex;
+        musicSourceStartedAt=startAt;
+        musicTimelineOffset=0;
+        musicResumeOffset=0;
+        externalMusicActive=true;
+        preloadNextMusicTrack();
+    }).catch(()=>{
+        if(token!==musicTrackSwitchToken || !musicPlaying || muted) return;
+        currentMusicTrackIndex=nextIndex;
+        playFallbackMusic(nextIndex,0,true);
+    });
+}
+// Warm the first OGG request while the title screen is visible; decoding waits for a user gesture.
+fetch(MUSIC_TRACKS[0].ogg,{cache:'force-cache'}).catch(()=>{});
 function ensureAudio() {
     if (!audioCtx) {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -2581,59 +2920,39 @@ function startMusic(resume = false) {
     musicResumeOffset = resumeOffset;
     musicPlaying = true;
     const token = ++musicStartToken;
-    externalMusicBlend = 0;
+    currentMusicTrackIndex = musicTrackIndexForLevel(player.level);
     ensureAudio();
-    loadMusicBuffers().then(buffers => {
-        if (token !== musicStartToken || !musicPlaying || muted) return;
-        if (!startMusicBufferPlayback(buffers, resumeOffset)) throw new Error('Не удалось запустить Web Audio loop');
-    }).catch(() => {
-        if (token !== musicStartToken || !musicPlaying || muted) return;
-        // Streaming MP3 fallback remains available on browsers that cannot decode the OGG loop buffers.
-        externalMusicActive = false;
-        stopMusicBufferSources();
-        gameMusicLow.volume = .57;
-        gameMusicHigh.volume = .001;
-        const startFallbackVoice = audio => new Promise((resolve, reject) => {
-            const ready = () => {
-                audio.removeEventListener('loadedmetadata', ready);
-                try {
-                    const duration = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 96.75;
-                    audio.currentTime = resumeOffset % duration;
-                } catch (_) {}
-                audio.play().then(resolve, reject);
-            };
-            audio.preload = 'auto';
-            if (audio.readyState >= 1) ready();
-            else { audio.addEventListener('loadedmetadata', ready, { once:true }); audio.load(); }
-        });
-        Promise.all([startFallbackVoice(gameMusicLow),startFallbackVoice(gameMusicHigh)]).then(() => {
-            if (token !== musicStartToken || !musicPlaying || muted) return;
-            externalMusicActive = true;
-            updateExternalMusicBlend(16.667);
-        }).catch(() => {
-            if (token === musicStartToken && musicPlaying && !muted) startProceduralMusicFallback();
-        });
+    if(!audioCtx) { playFallbackMusic(currentMusicTrackIndex,resumeOffset,false); return; }
+    loadMusicTrackBuffer(currentMusicTrackIndex).then(buffer=>{
+        if(token!==musicStartToken || !musicPlaying || muted) return;
+        if(!startMusicBufferPlayback(currentMusicTrackIndex,buffer,resumeOffset)) throw new Error('Не удалось запустить музыкальный буфер');
+    }).catch(()=>{
+        if(token!==musicStartToken || !musicPlaying || muted) return;
+        externalMusicActive=false;
+        if(!playFallbackMusic(currentMusicTrackIndex,resumeOffset,false)) startProceduralMusicFallback();
     });
 }
 function pauseMusic() {
-    if (musicPlaying && musicBufferSources.length) musicResumeOffset = getMusicTimelinePosition();
-    else if (musicPlaying && !musicBufferSources.length && Number.isFinite(gameMusicLow.currentTime)) musicResumeOffset = gameMusicLow.currentTime;
-    musicPlaying = false;
-    externalMusicActive = false;
+    if(musicPlaying) musicResumeOffset=getMusicTimelinePosition();
+    musicPlaying=false;
+    externalMusicActive=false;
     musicStartToken++;
-    if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+    musicTrackSwitchToken++;
+    if(musicTimer){clearInterval(musicTimer);musicTimer=null;}
     stopMusicBufferSources();
-    [gameMusicLow,gameMusicHigh].forEach(a => { try { a.pause(); } catch (_) {} });
+    if(fallbackMusicFadeTimer){clearInterval(fallbackMusicFadeTimer);fallbackMusicFadeTimer=null;}
+    fallbackMusicAudios.forEach(a=>{try{a.pause();}catch(_){}});
 }
 function stopMusic() {
-    musicPlaying = false;
-    externalMusicActive = false;
+    musicPlaying=false;
+    externalMusicActive=false;
     musicStartToken++;
-    if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+    musicTrackSwitchToken++;
+    if(musicTimer){clearInterval(musicTimer);musicTimer=null;}
     stopMusicBufferSources();
-    musicResumeOffset = 0;
-    musicTimelineOffset = 0;
-    [gameMusicLow,gameMusicHigh].forEach(a => { try { a.pause(); a.currentTime = 0; } catch (_) {} });
+    musicResumeOffset=0;
+    musicTimelineOffset=0;
+    stopFallbackMusic();
 }
 function toggleMute() {
     muted = !muted;
@@ -2661,6 +2980,7 @@ const HARD_DROP_GRACE = 180; // brief 180 ms correction window; then the hard dr
 let softDropHeld = false, softDropTimer = 0, lastFallFx = 0;
 let shakePower = 0, shakeRemaining = 0, shakeTotal = 0, screenFlash = 0;
 let cameraPunch = null;
+let dangerHeat = 0, dangerTarget = 0, dangerLastPulse = 0, dangerWasCritical = false;
 let lineClearAnim = null, eventBanner = null, bgEventPulse = 0, perfectClearFx = null;
 let gameOverAnim = null; // staged full-field destruction before the result overlay
 let frameScale = 1, currentFrameTime = 0, bgLastTime = 0;
@@ -3630,10 +3950,14 @@ function draw() {
         const age = performance.now() - cameraPunch.start;
         if (age >= cameraPunch.duration) cameraPunch = null;
         else {
-            const envelope = Math.pow(1 - age / cameraPunch.duration, 2.15);
-            const amp = cameraPunch.intensity * envelope;
-            ctx.translate(COL*.5 + Math.sin(age*.055)*amp*6, ROW*.5 + Math.cos(age*.061)*amp*4);
-            ctx.rotate(Math.sin(age*.042)*amp*.42);
+            const p = Math.max(0,Math.min(1,age / cameraPunch.duration));
+            const pulse = Math.pow(Math.sin(Math.PI*p),1.25);
+            const amp = cameraPunch.intensity * pulse;
+            const fx = cameraPunch.focusX ?? COL*.5, fy = cameraPunch.focusY ?? ROW*.52;
+            const panX = (COL*.5-fx) * amp * .48 + Math.sin(age*.028)*amp*1.8;
+            const panY = (ROW*.5-fy) * amp * .32 + Math.cos(age*.031)*amp*1.2;
+            ctx.translate(COL*.5 + panX, ROW*.5 + panY);
+            ctx.rotate(Math.sin(age*.024)*amp*.24);
             ctx.scale(1 + amp, 1 + amp);
             ctx.translate(-COL*.5, -ROW*.5);
         }
@@ -3828,8 +4152,10 @@ function arenaSweep(spinInfo = { isTSpin: false, mini: false }) {
     if (spinInfo.isTSpin) { playAssetSfx('tspin', .72); playMusicSting('tspin'); }
     else if (earnedBackToBack) playMusicSting('b2b');
     else if (combo > 1) playMusicSting('combo');
-    if (player.level > oldLevel) playMusicSting('level');
+    if (player.level > oldLevel) { switchMusicTrackForLevel(); playMusicSting('level'); }
     triggerShake(rows.length >= 4 ? 8 : 3.5 + rows.length * 1.5, rows.length >= 4 ? 260 : 190);
+    triggerCameraPunch(rows.length >= 4 ? .032 : .014 + rows.length*.003, rows.length >= 4 ? 620 : 340, COL*.5, rows.reduce((a,b)=>a+b,0)/rows.length, rows.length>=4?'tetris':'line');
+    haptic(rows.length >= 4 ? [18,34,26,42,48] : [10,22,16], true);
     bgEventPulse = Math.max(bgEventPulse, rows.length >= 4 ? .19 : .085);
 
     let title;
@@ -3925,6 +4251,8 @@ function finishLineClear() {
         playMusicSting('perfect');
         playNoiseBurst(.16, .024, 'highpass', 6200);
         triggerShake(6.5, 270);
+        triggerCameraPunch(.042, 820, COL*.5, ROW*.58, 'perfect-clear');
+        haptic([24,38,35,45,58], true);
         bgEventPulse = Math.max(bgEventPulse, .28);
         player.score += 0;
     }
@@ -3961,7 +4289,60 @@ function safeSave(key, value) {
     try { localStorage.setItem(key, JSON.stringify(value)); return true; }
     catch (_) { return false; }
 }
+
+const CONTROL_SETTINGS_KEY = 'cyberTetrisControlSettingsV1';
+let controlSettings = { mode:'slider', sensitivity:1, haptics:true };
+let lastHapticAt = 0;
+function haptic(pattern = 7, important = false) {
+    if (!isMobile || !controlSettings.haptics || typeof navigator.vibrate !== 'function') return;
+    const now=performance.now();
+    if (!important && now-lastHapticAt < 42) return;
+    lastHapticAt=now;
+    try { navigator.vibrate(pattern); } catch (_) {}
+}
+function loadControlSettings() {
+    const saved=safeLoad(CONTROL_SETTINGS_KEY,null);
+    if (saved && typeof saved==='object') {
+        controlSettings.mode=saved.mode==='joystick'?'joystick':'slider';
+        controlSettings.sensitivity=Math.max(.7,Math.min(1.5,Number(saved.sensitivity)||1));
+        controlSettings.haptics=saved.haptics!==false;
+    }
+    applyMobileControlMode();
+    updateControlSettingsUI();
+}
+function saveControlSettings() { safeSave(CONTROL_SETTINGS_KEY,controlSettings); }
+function applyMobileControlMode() {
+    const slider=document.getElementById('mc-slider-layout');
+    const joystick=document.getElementById('mc-joystick-layout');
+    if (slider) slider.classList.toggle('hidden',controlSettings.mode!=='slider');
+    if (joystick) joystick.classList.toggle('hidden',controlSettings.mode!=='joystick');
+}
+function updateControlSettingsUI() {
+    const sliderBtn=document.getElementById('control-mode-slider');
+    const joystickBtn=document.getElementById('control-mode-joystick');
+    if (sliderBtn) sliderBtn.classList.toggle('selected',controlSettings.mode==='slider');
+    if (joystickBtn) joystickBtn.classList.toggle('selected',controlSettings.mode==='joystick');
+    const sens=document.getElementById('control-sensitivity');
+    const sensValue=document.getElementById('control-sensitivity-value');
+    if (sens) sens.value=String(Math.round(controlSettings.sensitivity*100));
+    if (sensValue) sensValue.textContent=`${Math.round(controlSettings.sensitivity*100)}%`;
+    const hapticsBtn=document.getElementById('haptics-toggle');
+    if (hapticsBtn) {
+        const supported=typeof navigator.vibrate==='function';
+        hapticsBtn.disabled=!supported;
+        hapticsBtn.classList.toggle('off',!controlSettings.haptics || !supported);
+        hapticsBtn.textContent=!supported?'НЕТ API':(controlSettings.haptics?'ВКЛ':'ВЫКЛ');
+        hapticsBtn.setAttribute('aria-pressed',String(controlSettings.haptics && supported));
+    }
+    const note=document.getElementById('haptics-support-note');
+    if (note) note.textContent=typeof navigator.vibrate==='function'?'Короткий отклик при повороте, фиксации и очистке':'Браузер или устройство не поддерживает вибрацию';
+    const desc=document.getElementById('control-mode-description');
+    if (desc) desc.textContent=controlSettings.mode==='joystick'?'Плавающий джойстик: вверх — поворот, влево/вправо — движение, вниз — ускорение, тап — бросок.':'Слайдер: сдвиг пальца перемещает фигуру по клеткам; кнопки отвечают за поворот и падение.';
+    const guide=document.getElementById('controls-guide');
+    if (guide && isMobile) guide.innerHTML=controlSettings.mode==='joystick'?'ПЛАВАЮЩИЙ ДЖОЙСТИК: ↑ ПОВОРОТ · ← → ДВИЖЕНИЕ<br>↓ УСКОРЕНИЕ · ТАП — МГНОВЕННЫЙ БРОСОК':'СЛАЙДЕР ← → — ПЕРЕМЕЩЕНИЕ · ПОВОРОТ — ВРАЩЕНИЕ<br>БРОСОК — МГНОВЕННО ВНИЗ · УСКОРИТЬ — МЯГКОЕ ПАДЕНИЕ';
+}
 function initMetaSystems() {
+    loadControlSettings();
     const savedStats = safeLoad('cyberTetrisStatsV1', null);
     if (savedStats && typeof savedStats === 'object') persistentStats = { ...persistentStats, ...savedStats };
     const savedRecords = safeLoad('cyberTetrisRecordsV1', []);
@@ -4143,8 +4524,11 @@ function updateTopBarContext() {
     const challengesVisible = !document.getElementById('challenges-screen').classList.contains('hidden');
     const pauseVisible = !document.getElementById('pause-screen').classList.contains('hidden');
     const gameOverVisible = !document.getElementById('game-over-screen').classList.contains('hidden');
-    const showPause = !startVisible && !recordsVisible && !challengesVisible && !pauseVisible && !gameOverVisible && !paused && !isGameOver;
+    const settingsVisible = !document.getElementById('settings-screen').classList.contains('hidden');
+    const showPause = !startVisible && !recordsVisible && !challengesVisible && !settingsVisible && !pauseVisible && !gameOverVisible && !paused && !isGameOver;
     document.getElementById('pause-btn').hidden = !showPause;
+    const settingsBtn=document.getElementById('settings-btn');
+    if (settingsBtn) settingsBtn.hidden=settingsVisible || !!(gameOverAnim && !gameOverAnim.resultShown);
 }
 
 function openMetaScreen(kind) {
@@ -4162,6 +4546,31 @@ function closeMetaScreen() {
     document.getElementById('challenges-screen').classList.add('hidden');
     document.getElementById(metaReturnScreen).classList.remove('hidden');
     updateTopBarContext();
+}
+let settingsReturnScreen = null, settingsResumeActiveGame = false;
+function openSettings() {
+    if (!document.getElementById('settings-screen').classList.contains('hidden')) return;
+    const screenIds=['start-screen','pause-screen','game-over-screen','records-screen','challenges-screen'];
+    settingsReturnScreen=screenIds.find(id=>!document.getElementById(id).classList.contains('hidden')) || null;
+    settingsResumeActiveGame=!settingsReturnScreen && !paused && !isGameOver;
+    if (settingsResumeActiveGame) setPaused(true);
+    if (settingsReturnScreen) document.getElementById(settingsReturnScreen).classList.add('hidden');
+    document.getElementById('pause-screen').classList.add('hidden');
+    document.getElementById('settings-screen').classList.remove('hidden');
+    document.body.classList.add('settings-active');
+    updateControlSettingsUI();
+    updateTopBarContext();
+}
+function closeSettings() {
+    const screen=document.getElementById('settings-screen');
+    if (screen.classList.contains('hidden')) return;
+    screen.classList.add('hidden');
+    document.body.classList.remove('settings-active');
+    if (settingsReturnScreen) document.getElementById(settingsReturnScreen).classList.remove('hidden');
+    if (settingsResumeActiveGame) setPaused(false);
+    else updateTopBarContext();
+    settingsReturnScreen=null;
+    settingsResumeActiveGame=false;
 }
 function saveGameResult() {
     if (runFinalized) return;
@@ -4229,6 +4638,46 @@ function updateStats(options = {}) {
     updateChallengeProgress('score', player.score, 'max');
 }
 
+// ===================== DANGER STATE =====================
+function calculateDangerTarget() {
+    const top = matrix.findIndex(row => row.some(Boolean));
+    if (top < 0) return 0;
+    const stackHeight = ROW - top;
+    return Math.max(0, Math.min(1, (stackHeight - 11) / 8));
+}
+function updateDangerState(delta, time) {
+    dangerTarget = calculateDangerTarget();
+    const rate = dangerTarget > dangerHeat ? .0062 : .0026;
+    dangerHeat += (dangerTarget - dangerHeat) * (1 - Math.exp(-Math.max(0,delta) * rate));
+    if (dangerHeat < .006) dangerHeat = 0;
+    const container = document.getElementById('game-container');
+    const card = document.getElementById('danger-card');
+    if (container) {
+        container.style.setProperty('--danger-heat', dangerHeat.toFixed(3));
+        container.classList.toggle('danger-warning', dangerHeat > .08);
+        container.classList.toggle('danger-critical', dangerHeat > .72);
+    }
+    if (card) {
+        card.classList.toggle('active', dangerHeat > .08);
+        card.classList.toggle('critical', dangerHeat > .72);
+        const fill=document.getElementById('danger-meter-fill');
+        const percent=document.getElementById('danger-percent');
+        const label=document.getElementById('danger-label');
+        if (fill) fill.style.width=`${Math.round(dangerHeat*100)}%`;
+        if (percent) percent.textContent=`${Math.round(dangerHeat*100)}%`;
+        if (label) { const compactDanger=matchMedia('(max-width:760px), (pointer:coarse)').matches; label.textContent=dangerHeat>.72?(compactDanger?'КРИТ':'КРИТИЧЕСКАЯ ОПАСНОСТЬ'):dangerHeat>.32?(compactDanger?'РИСК':'ОПАСНОСТЬ'):(compactDanger?'СТОПКА':'СТОПКА РАСТЁТ'); }
+    }
+    if (dangerHeat > .72 && !dangerWasCritical) {
+        dangerWasCritical = true;
+        triggerCameraPunch(.0045, 520, COL*.5, ROW*.76, 'danger');
+        haptic([12,24,18]);
+    } else if (dangerHeat < .56) dangerWasCritical = false;
+    if (dangerHeat > .56 && time - dangerLastPulse > 1450 && !paused && !muted && !gameOverAnim) {
+        dangerLastPulse = time;
+        playTone(62, 'sine', .24, .012 + dangerHeat*.009, .035, 48);
+    }
+}
+
 // ===================== ACTIONS =====================
 function touchesGround() {
     return collide(matrix, {x: player.pos.x, y: player.pos.y + 1});
@@ -4271,6 +4720,7 @@ function lockPiece() {
     const spinInfo = detectTSpin();
     merge(matrix, player.pos);
     playLockSound();
+    haptic(6);
     const clearing = arenaSweep(spinInfo);
     if (!clearing) {
         if (spinInfo.isTSpin) {
@@ -4297,6 +4747,7 @@ function playerMove(dir) {
         return false;
     }
     playMoveSound();
+    haptic(4);
     player.lastActionRotate = false;
     if (isLocking) lockTimer = 0;
     // A move off a ledge must allow the piece to fall again.
@@ -4323,6 +4774,7 @@ function playerRotate(dir) {
         player.lastActionRotate = true;
         player.lastRotateKick = usedKick;
         playRotateSound();
+        haptic(7);
         if (isLocking) lockTimer = 0;
         if (!touchesGround()) { isLocking = false; lockTimer = 0; }
     }
@@ -4343,6 +4795,8 @@ function playerHardDrop() {
     }
     createLandingBurst(player.piece, player.pos);
     triggerShake(dist > 0 ? 8 : 2.2, 230);
+    triggerCameraPunch(.014, 270, player.pos.x + player.piece[0].length*.5, player.pos.y + player.piece.length*.55, 'drop');
+    haptic(17, true);
     playHardDropSound();
     // Brief correction window: enough for a quick tap, without making the hard drop feel delayed.
     hardDropLockUntil = performance.now() + HARD_DROP_GRACE;
@@ -4389,10 +4843,10 @@ player.reset = function () {
 
 // ===================== SCREEN SHAKE =====================
 const gameContainer = document.getElementById('game-container');
-function triggerCameraPunch(intensity = .012, duration = 190) {
+function triggerCameraPunch(intensity = .012, duration = 190, focusX = COL*.5, focusY = ROW*.52, kind = 'impact') {
     if (reducedMotion) intensity *= .22;
     const now = performance.now();
-    if (!cameraPunch || intensity >= cameraPunch.intensity * .72) cameraPunch = { start:now, duration, intensity:Math.max(intensity,cameraPunch?.intensity || 0) };
+    if (!cameraPunch || intensity >= cameraPunch.intensity * .72) cameraPunch = { start:now, duration, intensity:Math.max(intensity,cameraPunch?.intensity || 0), focusX, focusY, kind };
 }
 function triggerShake(intensity = 4, duration = 180) {
     if (reducedMotion) intensity *= .25;
@@ -4459,7 +4913,6 @@ function update(time = 0) {
     bgEventPulse *= .965;
 
     const delta = Math.min(50, Math.max(0, time - lastTime));
-    updateExternalMusicBlend(delta || 16.667);
     frameScale = Math.min(2.5, delta / 16.667 || 1);
     lastTime = time;
 
@@ -4477,6 +4930,8 @@ function update(time = 0) {
         requestAnimationFrame(update);
         return;
     }
+
+    updateDangerState(delta, time);
 
     if (lineClearAnim) {
         advanceLineClear(delta);
@@ -4541,6 +4996,7 @@ function gameOver() {
     eventBanner = null;
     stopMusic();
     playGameOverSound();
+    haptic([35,42,60], true);
 
     saveGameResult();
     document.getElementById('final-score').textContent = player.score.toLocaleString('ru-RU');
@@ -4588,6 +5044,10 @@ function init() {
     const gameOverPanel = document.getElementById('game-over-screen');
     gameOverPanel.classList.remove('game-over-reveal');
     bgEventPulse = 0;
+    dangerHeat = 0; dangerTarget = 0; dangerLastPulse = 0; dangerWasCritical = false;
+    gameContainer.classList.remove('danger-warning','danger-critical');
+    gameContainer.style.setProperty('--danger-heat','0');
+    const dangerCard=document.getElementById('danger-card'); if(dangerCard){dangerCard.classList.remove('active','critical');}
     softDropHeld = false;
     softDropTimer = 0;
     shakePower = 0; shakeRemaining = 0; shakeTotal = 0;
@@ -4661,6 +5121,7 @@ window.addEventListener('keydown', e => {
     if (keysDown.has(e.key)) return; // ignore key repeat from OS
     keysDown.add(e.key);
 
+    if (e.key === 'Escape' && !document.getElementById('settings-screen').classList.contains('hidden')) { closeSettings(); return; }
     if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
         if (isGameOver) return;
         setPaused(!paused);
@@ -4740,8 +5201,158 @@ function bindMobileBtn(id, onPress, repeat = false, onRelease = null) {
     el.addEventListener('contextmenu', ev => ev.preventDefault());
 }
 
-bindMobileBtn('mc-left',  () => { if (!paused && !isGameOver && !lineClearAnim) playerMove(-1); }, true);
-bindMobileBtn('mc-right', () => { if (!paused && !isGameOver && !lineClearAnim) playerMove(1); }, true);
+// Floating four-way joystick: press anywhere to anchor, drag to choose direction, tap to hard-drop.
+function bindFloatingJoystick() {
+    const pad=document.getElementById('mc-joystick-pad');
+    const origin=document.getElementById('mc-joy-origin');
+    const nub=document.getElementById('mc-joy-nub');
+    if(!pad||!origin||!nub) return;
+    let pointerId=null, startX=0, startY=0, maxDistance=0, activeDirection=null;
+    let holdTimer=null, repeatTimer=null, pointerOriginX=0, pointerOriginY=0;
+    let maxRadius=36, deadZone=18, sensitivity=1;
+    const canAct=()=>!paused&&!isGameOver&&!lineClearAnim&&!gameOverAnim;
+    const clearRepeat=()=>{ clearTimeout(holdTimer); clearInterval(repeatTimer); holdTimer=null; repeatTimer=null; };
+    const moveDirection=(dir)=>{ if(!canAct()) return; if(dir==='left') playerMove(-1); else if(dir==='right') playerMove(1); };
+    const stopDirection=()=>{ if(activeDirection==='down'){softDropHeld=false;softDropTimer=0;} activeDirection=null; clearRepeat(); };
+    const classify=(dx,dy)=>{
+        const distance=Math.hypot(dx,dy);
+        if(distance<deadZone) return null;
+        if(Math.abs(dx)>Math.abs(dy)*1.08) return dx<0?'left':'right';
+        return dy<0?'up':'down';
+    };
+    const applyDirection=(dir)=>{
+        if(dir===activeDirection) return;
+        stopDirection();
+        if(!dir||!canAct()) return;
+        activeDirection=dir;
+        if(dir==='left'||dir==='right') {
+            moveDirection(dir);
+            const dasMs=Math.round(210/sensitivity), arrMs=Math.max(58,Math.round(105/sensitivity));
+            holdTimer=setTimeout(()=>{ if(activeDirection===dir) repeatTimer=setInterval(()=>moveDirection(dir),arrMs); },dasMs);
+        } else if(dir==='up') {
+            playerRotate(1);
+        } else if(dir==='down') {
+            softDropHeld=true; softDropTimer=0; playerDrop(true);
+        }
+    };
+    const resetVisual=()=>{
+        origin.style.display='none';
+        origin.style.left='50%'; origin.style.top='50%';
+        nub.style.setProperty('--joy-x','0px'); nub.style.setProperty('--joy-y','0px');
+        pad.classList.remove('active');
+    };
+    const finish=(ev)=>{
+        if(pointerId===null || (ev.pointerId!==undefined&&ev.pointerId!==pointerId)) return;
+        ev.preventDefault?.();
+        const wasTap=maxDistance<deadZone*.82 && !activeDirection;
+        const id=pointerId;
+        pointerId=null;
+        stopDirection(); resetVisual();
+        try{if(pad.hasPointerCapture(id))pad.releasePointerCapture(id);}catch(_){}
+        if(wasTap && canAct()) playerHardDrop();
+    };
+    pad.addEventListener('pointerdown',ev=>{
+        if(pointerId!==null || !canAct() || (ev.pointerType==='mouse'&&ev.button!==0)) return;
+        ev.preventDefault(); pointerId=ev.pointerId; startX=ev.clientX; startY=ev.clientY; maxDistance=0; activeDirection=null; sensitivity=controlSettings.sensitivity;
+        const rect=pad.getBoundingClientRect();
+        const radius=Math.min(rect.width,rect.height)*.29;
+        pointerOriginX=Math.max(radius+5,Math.min(rect.width-radius-5,ev.clientX-rect.left));
+        pointerOriginY=Math.max(radius+5,Math.min(rect.height-radius-5,ev.clientY-rect.top));
+        maxRadius=Math.max(28,Math.min(47,rect.width*.285));
+        deadZone=Math.max(13,Math.min(25,18/sensitivity));
+        origin.style.display='block'; origin.style.left=`${pointerOriginX}px`; origin.style.top=`${pointerOriginY}px`;
+        try{pad.setPointerCapture(ev.pointerId);}catch(_){}
+        pad.classList.add('active');
+    },{passive:false});
+    pad.addEventListener('pointermove',ev=>{
+        if(pointerId!==ev.pointerId) return;
+        ev.preventDefault();
+        let dx=ev.clientX-startX, dy=ev.clientY-startY;
+        const dist=Math.hypot(dx,dy); maxDistance=Math.max(maxDistance,dist);
+        const scale=dist>maxRadius?maxRadius/dist:1; dx*=scale; dy*=scale;
+        nub.style.setProperty('--joy-x',`${dx.toFixed(1)}px`); nub.style.setProperty('--joy-y',`${dy.toFixed(1)}px`);
+        const dir=classify(ev.clientX-startX,ev.clientY-startY);
+        applyDirection(dir);
+    },{passive:false});
+    pad.addEventListener('pointerup',finish,{passive:false});
+    pad.addEventListener('pointercancel',finish,{passive:false});
+    pad.addEventListener('lostpointercapture',()=>{if(pointerId!==null){pointerId=null;stopDirection();resetVisual();}});
+    pad.addEventListener('contextmenu',ev=>ev.preventDefault());
+    window.addEventListener('blur',()=>{pointerId=null;stopDirection();resetVisual();});
+}
+
+// Relative analog slider: one cell per deliberate finger travel step; stationary holds never auto-repeat.
+function bindMobileStick() {
+    const el=document.getElementById('mc-stick');
+    const thumb=document.getElementById('mc-stick-thumb');
+    if(!el || !thumb) return;
+    let pointerId=null,startX=0,issuedSteps=0,stepPx=18,maxSteps=4,maxTravel=68;
+    const canMove=()=>!paused&&!isGameOver&&!lineClearAnim;
+    const reset=()=>{
+        pointerId=null; issuedSteps=0;
+        el.style.setProperty('--stick-x','0px');
+        el.setAttribute('aria-valuenow','0');
+        el.setAttribute('aria-valuetext','Нейтральное положение');
+        el.classList.remove('pressed');
+    };
+    const moveTo=(clientX)=>{
+        const dx=Math.max(-maxTravel,Math.min(maxTravel,clientX-startX));
+        el.style.setProperty('--stick-x',`${dx}px`);
+        if(!canMove()) return;
+        const dir=Math.sign(dx);
+        const magnitude=Math.abs(dx);
+        const hysteresis=stepPx*.23;
+        let count=(Math.sign(issuedSteps)===dir)?Math.abs(issuedSteps):0;
+        while(count<maxSteps && magnitude >= (count+1)*stepPx+hysteresis) count++;
+        while(count>0 && magnitude <= count*stepPx-hysteresis) count--;
+        const desired=dir*count;
+        const diff=desired-issuedSteps;
+        if(diff!==0){
+            const moveDir=Math.sign(diff);
+            let moved=0;
+            for(let i=0;i<Math.abs(diff);i++){ if(playerMove(moveDir)) moved++; else break; }
+            issuedSteps += moveDir*moved;
+            el.setAttribute('aria-valuenow',String(issuedSteps));
+            el.setAttribute('aria-valuetext',issuedSteps===0?'Нейтральное положение':`${Math.abs(issuedSteps)} шага ${issuedSteps<0?'влево':'вправо'}`);
+        }
+    };
+    el.addEventListener('pointerdown',ev=>{
+        if(pointerId!==null || !canMove() || (ev.pointerType==='mouse'&&ev.button!==0)) return;
+        ev.preventDefault();
+        pointerId=ev.pointerId; startX=ev.clientX; issuedSteps=0;
+        const rect=el.getBoundingClientRect();
+        maxTravel=Math.max(42,(rect.width-48)*.5);
+        stepPx=Math.max(12,Math.min(22,rect.width*.087))/controlSettings.sensitivity;
+        maxSteps=Math.max(2,Math.min(4,Math.floor((maxTravel+stepPx*.2)/stepPx)));
+        try{el.setPointerCapture(ev.pointerId);}catch(_){}
+        el.classList.add('pressed');
+        moveTo(ev.clientX);
+    },{passive:false});
+    el.addEventListener('pointermove',ev=>{
+        if(pointerId!==ev.pointerId) return;
+        ev.preventDefault();
+        moveTo(ev.clientX);
+    },{passive:false});
+    const end=ev=>{
+        if(pointerId===null || (ev.pointerId!==undefined&&ev.pointerId!==pointerId)) return;
+        ev.preventDefault?.();
+        const id=pointerId; reset();
+        try{if(el.hasPointerCapture(id))el.releasePointerCapture(id);}catch(_){}
+    };
+    el.addEventListener('pointerup',end,{passive:false});
+    el.addEventListener('pointercancel',end,{passive:false});
+    el.addEventListener('lostpointercapture',()=>{if(pointerId!==null)reset();});
+    el.addEventListener('contextmenu',ev=>ev.preventDefault());
+    el.addEventListener('keydown',ev=>{
+        if(!canMove()) return;
+        if(ev.key==='ArrowLeft'||ev.key==='ArrowRight'){
+            ev.preventDefault(); playerMove(ev.key==='ArrowLeft'?-1:1);
+        }
+    });
+    window.addEventListener('blur',reset);
+}
+bindMobileStick();
+bindFloatingJoystick();
 bindMobileBtn('mc-down',  () => {
     if (paused || isGameOver || lineClearAnim) return;
     softDropHeld = true;
@@ -4792,6 +5403,12 @@ document.getElementById('resume-btn').addEventListener('click', () => setPaused(
 document.getElementById('pause-btn').addEventListener('click', () => setPaused(!paused));
 document.getElementById('restart-btn').addEventListener('click', init);
 document.getElementById('mute-btn').addEventListener('click', toggleMute);
+document.getElementById('settings-btn').addEventListener('click', openSettings);
+document.getElementById('settings-back-btn').addEventListener('click', closeSettings);
+document.getElementById('control-mode-slider').addEventListener('click',()=>{controlSettings.mode='slider';saveControlSettings();applyMobileControlMode();updateControlSettingsUI();});
+document.getElementById('control-mode-joystick').addEventListener('click',()=>{controlSettings.mode='joystick';saveControlSettings();applyMobileControlMode();updateControlSettingsUI();});
+document.getElementById('control-sensitivity').addEventListener('input',ev=>{controlSettings.sensitivity=Math.max(.7,Math.min(1.5,Number(ev.target.value)/100));saveControlSettings();updateControlSettingsUI();});
+document.getElementById('haptics-toggle').addEventListener('click',()=>{controlSettings.haptics=!controlSettings.haptics;saveControlSettings();updateControlSettingsUI();if(controlSettings.haptics)haptic(12,true);});
 document.getElementById('records-open-btn').addEventListener('click', () => openMetaScreen('records'));
 document.getElementById('challenges-open-btn').addEventListener('click', () => openMetaScreen('challenges'));
 document.getElementById('gameover-records-btn').addEventListener('click', () => openMetaScreen('records'));
@@ -4824,7 +5441,7 @@ draw();
 // Show mobile controls early if needed
 if (isMobile) {
     document.getElementById('controls-guide').innerHTML =
-        'Касание — поворот · Свайп вверх — поворот · Свайп вниз — бросок<br>Удерживайте ◀ / ▶ для движения · ▼ для ускорения';
+        'Слайдер ← → — перемещение · ПОВОРОТ — вращение<br>БРОСОК — мгновенно вниз · УСКОРИТЬ — мягкое падение';
 }
 
 })();
