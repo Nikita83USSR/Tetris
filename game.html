@@ -2340,25 +2340,6 @@ function drawSynthMountains(horizon, t) {
     bgCtx.fillStyle = haze;
     bgCtx.fillRect(0, horizon, bgW, bgH * .18);
 }
-function drawAtmosphere(t, horizon, vanishX) {
-    bgCtx.save();
-    bgCtx.globalAlpha = .5 + .12 * Math.sin(t * .00023);
-    for (let i = 0; i < 3; i++) {
-        const y = horizon - bgH * (.16 + i * .07) + Math.sin(t * .00018 + i * 2.1) * 8;
-        const grad = bgCtx.createLinearGradient(0, y, bgW, y + 18);
-        grad.addColorStop(0, 'rgba(255,87,43,0)');
-        grad.addColorStop(.35, 'rgba(255,88,55,.045)');
-        grad.addColorStop(.68, 'rgba(85,76,220,.065)');
-        grad.addColorStop(1, 'rgba(0,205,255,0)');
-        bgCtx.strokeStyle = grad;
-        bgCtx.lineWidth = 15 + i * 5;
-        bgCtx.beginPath();
-        bgCtx.moveTo(-20, y + 7);
-        bgCtx.bezierCurveTo(bgW * .28, y - 18, bgW * .66, y + 24, bgW + 20, y - 2);
-        bgCtx.stroke();
-    }
-    bgCtx.restore();
-}
 
 function drawLevelSpeedStreaks(horizon, motionTime, speedMultiplier) {
     const intensity = Math.max(0, Math.min(1, (speedMultiplier - 1) / 1.15));
@@ -2568,7 +2549,7 @@ function drawBackground(t) {
         bgCtx.restore();
     }
 
-    drawAtmosphere(bgMotionClock, horizon, vanishX);
+    // Rainbow atmospheric ribbons removed: keep the playfield and silhouettes unobstructed.
     if (!hasScene) drawSynthMountains(horizon, bgMotionClock);
     drawSkyTraffic(bgMotionClock, horizon, bgSpeedMultiplier);
     drawOverdriveAtmosphere(bgMotionClock,horizon,vanishX,sunY,overdriveHeat);
