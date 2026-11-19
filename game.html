@@ -1820,6 +1820,11 @@
         @keyframes fadeIn {from{opacity:0;}to{opacity:1;}}
         @keyframes fadeOut {from{opacity:1;}to{opacity:0;}}
 
+
+        /* V15.1 FIX: keep the animated conic bezel rail behind the playfield canvas.
+           It must never paint into the active-piece area. */
+        .arena-bezel::before { z-index: 0 !important; }
+        .arena-bezel canvas#tetris { position: relative; z-index: 1 !important; }
 </style>
 </head>
 <body>
@@ -2340,7 +2345,7 @@ function drawSynthMountains(horizon, t) {
     bgCtx.fillStyle = haze;
     bgCtx.fillRect(0, horizon, bgW, bgH * .18);
 }
-// Removed: animated atmospheric rainbow ribbons were competing with active pieces.
+// Removed: broad rainbow-like atmospheric ribbons that crossed the playfield.
 
 function drawLevelSpeedStreaks(horizon, motionTime, speedMultiplier) {
     const intensity = Math.max(0, Math.min(1, (speedMultiplier - 1) / 1.15));
@@ -2549,6 +2554,8 @@ function drawBackground(t) {
         bgCtx.stroke();
         bgCtx.restore();
     }
+
+    // Rainbow atmospheric ribbons intentionally disabled.
     if (!hasScene) drawSynthMountains(horizon, bgMotionClock);
     drawSkyTraffic(bgMotionClock, horizon, bgSpeedMultiplier);
     drawOverdriveAtmosphere(bgMotionClock,horizon,vanishX,sunY,overdriveHeat);
