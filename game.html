@@ -5965,10 +5965,41 @@ function bindMobileStick() {
     const el=document.getElementById('mc-stick');
     const thumb=document.getElementById('mc-stick-thumb');
     if(!el || !thumb) return;
-    let pointerId=null,lastPointerX=0,totalFingerDx=0,moveAccumulator=0,stepPx=18,maxTravel=68;
+    let pointerId=null,lastPointerX=0,totalFingerDx=0,moveAccumulator=0,reversalBuffer=0,stepPx=18,maxTravel=68;
     const canMove=()=>!paused&&!isGameOver&&!lineClearAnim;
+    const reversalThreshold=()=>Math.min(3.2,stepPx*.2);
+    const consumeAccumulator=()=>{
+        while(Math.abs(moveAccumulator)>=stepPx){
+            const direction=Math.sign(moveAccumulator);
+            if(!playerMove(direction)){ moveAccumulator=0; reversalBuffer=0; break; }
+            moveAccumulator-=direction*stepPx;
+        }
+    };
+    const applyDelta=dx=>{
+        if(!dx) return;
+        const threshold=reversalThreshold();
+        if(reversalBuffer){
+            if(Math.sign(dx)===Math.sign(reversalBuffer)){
+                reversalBuffer+=dx;
+                if(Math.abs(reversalBuffer)>=threshold){ moveAccumulator+=reversalBuffer; reversalBuffer=0; consumeAccumulator(); }
+                return;
+            }
+            const cancel=Math.min(Math.abs(dx),Math.abs(reversalBuffer));
+            reversalBuffer+=Math.sign(dx)*cancel;
+            dx-=Math.sign(dx)*cancel;
+            if(Math.abs(reversalBuffer)<.001) reversalBuffer=0;
+            if(!dx) return;
+        }
+        if(moveAccumulator && Math.sign(dx)!==Math.sign(moveAccumulator)){
+            reversalBuffer=dx;
+            if(Math.abs(reversalBuffer)>=threshold){ moveAccumulator+=reversalBuffer; reversalBuffer=0; consumeAccumulator(); }
+            return;
+        }
+        moveAccumulator+=dx;
+        consumeAccumulator();
+    };
     const reset=()=>{
-        pointerId=null; totalFingerDx=0; moveAccumulator=0;
+        pointerId=null; totalFingerDx=0; moveAccumulator=0; reversalBuffer=0;
         el.style.setProperty('--stick-x','0px');
         el.setAttribute('aria-valuenow','0');
         el.setAttribute('aria-valuetext','Нейтральное положение');
@@ -5979,17 +6010,11 @@ function bindMobileStick() {
             const dx=sample.clientX-lastPointerX;
             lastPointerX=sample.clientX;
             totalFingerDx+=dx;
-            moveAccumulator+=dx;
             const visualDx=Math.max(-maxTravel,Math.min(maxTravel,totalFingerDx));
             el.style.setProperty('--stick-x',`${visualDx}px`);
-            if(!canMove()) { moveAccumulator=0; continue; }
-            // Relative path tracking: each pixel of finger travel is consumed once.
-            // Reversing direction immediately reverses the signed accumulator.
-            while(Math.abs(moveAccumulator)>=stepPx){
-                const direction=Math.sign(moveAccumulator);
-                if(!playerMove(direction)){ moveAccumulator=0; break; }
-                moveAccumulator-=direction*stepPx;
-            }
+            if(!canMove()) { moveAccumulator=0; reversalBuffer=0; continue; }
+            // TEST: hold back only tiny opposite-direction jitter; commit real reversals quickly.
+            applyDelta(dx);
         }
         const count=Math.round(totalFingerDx/stepPx);
         el.setAttribute('aria-valuenow',String(count));
