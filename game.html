@@ -1870,7 +1870,7 @@
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
-<div id="build-version-badge" aria-label="Тестовая сборка версии 0.5">TEST v0.6</div>
+<div id="build-version-badge" aria-label="Тестовая сборка версии 0.7">TEST v0.7</div>
 
 <div id="game-shell">
     <div id="game-container">
@@ -5935,12 +5935,12 @@ function bindOneFingerGestures() {
     const status=document.getElementById('mc-onefinger-status');
     if(!pad||!status) return;
     let pointerId=null,startX=0,startY=0,lastX=0,lastY=0,startedAt=0,maxDistance=0;
-    let lockedAxis=null,softDropActive=false,hardDropped=false;
+    let lockedAxis=null,softDropActive=false,hardDropped=false,upRotateTriggered=false;
     let horizontalRemainder=0,warningShown=false;
     const canAct=()=>!paused&&!isGameOver&&!lineClearAnim&&!gameOverAnim;
     const reset=()=>{
         if(softDropActive){softDropHeld=false;softDropTimer=0;softDropActive=false;}
-        pointerId=null;lockedAxis=null;hardDropped=false;
+        pointerId=null;lockedAxis=null;hardDropped=false;upRotateTriggered=false;
         horizontalRemainder=0;warningShown=false;maxDistance=0;
         pad.classList.remove('active','warning');
         status.textContent='КАСАЙСЯ И ВЕДИ ПАЛЕЦ В НУЖНУЮ СТОРОНУ';
@@ -5960,6 +5960,13 @@ function bindOneFingerGestures() {
                 horizontalRemainder-=dir*step;
             }
             status.textContent=horizontalRemainder<0?'ДВИЖЕНИЕ ВЛЕВО':'ДВИЖЕНИЕ ВПРАВО';
+        } else if(lockedAxis==='vertical'&&dy<0){
+            // Small upward dead zone: ignore finger drift until the swipe is deliberate.
+            if(dy<=-34&&!upRotateTriggered){
+                upRotateTriggered=true;
+                playerRotate(1);
+                status.textContent='ПОВОРОТ';
+            }
         } else if(lockedAxis==='vertical'&&dy>0){
             if(dy>=25&&!softDropActive){
                 softDropActive=true;softDropHeld=true;softDropTimer=0;playerDrop(true);
@@ -5996,7 +6003,7 @@ function bindOneFingerGestures() {
         if(pointerId!==null||!canAct()||(ev.pointerType==='mouse'&&ev.button!==0)) return;
         ev.preventDefault();
         pointerId=ev.pointerId;startX=lastX=ev.clientX;startY=lastY=ev.clientY;
-        startedAt=performance.now();lockedAxis=null;softDropActive=false;hardDropped=false;maxDistance=0;
+        startedAt=performance.now();lockedAxis=null;softDropActive=false;hardDropped=false;upRotateTriggered=false;maxDistance=0;
         horizontalRemainder=0;warningShown=false;
         try{pad.setPointerCapture(ev.pointerId);}catch(_){}
         pad.classList.add('active');
