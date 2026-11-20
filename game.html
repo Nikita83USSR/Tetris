@@ -1645,6 +1645,12 @@
 
         .mc-slider-layout { display:flex; flex-direction:column; gap:9px; width:100%; }
         .mc-onefinger-layout { width:min(100%,440px); height:154px; margin:0 auto; position:relative; display:flex; align-items:center; justify-content:center; border:1px solid rgba(76,218,255,.28); border-radius:18px; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; background:radial-gradient(ellipse at 50% 100%,rgba(24,106,137,.30),rgba(5,13,29,.90) 72%); box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 20px rgba(0,0,0,.24); }
+        /* Transparent mobile hit target extends from the visible gesture pad to the screen bottom. */
+        #mc-onefinger-hitarea {
+            position:fixed; left:0; right:0; bottom:0; top:var(--onefinger-hitarea-top, 50%);
+            z-index:20; display:none; background:transparent; touch-action:none;
+            user-select:none; -webkit-user-select:none; overscroll-behavior:contain;
+        }
         .mc-onefinger-layout::before { content:""; position:absolute; left:50%; top:50%; width:112px; height:112px; transform:translate(-50%,-50%); border:1px dashed rgba(104,221,245,.23); border-radius:50%; pointer-events:none; }
         .mc-onefinger-layout.active { border-color:rgba(255,172,100,.75); box-shadow:inset 0 0 24px rgba(0,220,255,.08),0 0 18px rgba(255,132,74,.14); }
         .mc-onefinger-mark { position:relative; z-index:1; text-align:center; color:rgba(186,232,247,.74); pointer-events:none; font-size:.56rem; font-weight:900; letter-spacing:.16em; }
@@ -1897,7 +1903,7 @@
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
-<div id="build-version-badge" aria-label="Тестовая сборка версии 0.9">TEST v0.9</div>
+<div id="build-version-badge" aria-label="Тестовая сборка версии 1.0">TEST v1.0</div>
 
 <div id="game-shell">
     <div id="game-container">
@@ -5039,6 +5045,7 @@ function applyMobileControlMode() {
     if (slider) slider.classList.toggle('hidden',controlSettings.mode!=='twoFinger');
     if (oneFinger) oneFinger.classList.toggle('hidden',controlSettings.mode!=='oneFinger');
     if (joystick) joystick.classList.add('hidden');
+    syncOneFingerGestureSurface();
 }
 function updateControlSettingsUI() {
     updateSystemVoiceUI();
@@ -5765,6 +5772,7 @@ function gameOver() {
     document.getElementById('game-over-screen').classList.remove('game-over-reveal');
     document.getElementById('pause-screen').classList.add('hidden');
     document.getElementById('mobile-controls').classList.remove('visible');
+    syncOneFingerGestureSurface();
 
     const snapshot = makeGameOverSnapshot();
     particles = [];
@@ -5844,6 +5852,7 @@ function init() {
     if (isMobile) {
         document.getElementById('mobile-controls').classList.add('visible');
     }
+    syncOneFingerGestureSurface();
 
     startMusic();
     if (!systemVoiceBootPlayed) { systemVoiceBootPlayed = true; queueSystemVoice('boot'); }
@@ -5877,6 +5886,7 @@ function setPaused(value) {
     document.getElementById('pause-btn').textContent = paused ? '▶' : 'Ⅱ';
     document.getElementById('pause-btn').setAttribute('aria-label', paused ? 'Продолжить игру' : 'Пауза');
     updateTopBarContext();
+    syncOneFingerGestureSurface();
     if (paused) {
         if (overdriveState && !overdriveState.pausedAt) overdriveState.pausedAt=performance.now();
         pauseMusic(); dasDir = 0; softDropHeld = false;
@@ -5975,12 +5985,32 @@ function bindMobileBtn(id, onPress, repeat = false, onRelease = null) {
     el.addEventListener('contextmenu', ev => ev.preventDefault());
 }
 
+let oneFingerGestureSurface = null;
+function syncOneFingerGestureSurface() {
+    const pad=document.getElementById('mc-onefinger-layout');
+    const surface=oneFingerGestureSurface;
+    const controls=document.getElementById('mobile-controls');
+    if(!pad||!surface||!controls) return;
+    const enabled=controlSettings.mode==='oneFinger' && controls.classList.contains('visible') && !paused && !isGameOver;
+    if(!enabled){surface.style.display='none';return;}
+    const rect=pad.getBoundingClientRect();
+    if(!rect.height){surface.style.display='none';return;}
+    // clientX/clientY are still consumed directly by the gesture engine.
+    // Only the hit target grows; no canvas, board, or game-coordinate scaling occurs.
+    surface.style.setProperty('--onefinger-hitarea-top',Math.max(0,rect.top)+'px');
+    surface.style.display='block';
+}
+
 // One-finger gesture zone: horizontal swipes move, upward swipes rotate,
 // short downward swipes soft-drop; a guarded long downward swipe hard-drops.
 function bindOneFingerGestures() {
     const pad=document.getElementById('mc-onefinger-layout');
     const status=document.getElementById('mc-onefinger-status');
     if(!pad||!status) return;
+    const hitArea=document.createElement('div');
+    hitArea.id='mc-onefinger-hitarea';
+    document.body.appendChild(hitArea);
+    oneFingerGestureSurface=hitArea;
     let pointerId=null,startX=0,startY=0,lastX=0,lastY=0,startedAt=0,maxDistance=0;
     let lockedAxis=null,softDropActive=false,hardDropped=false,upRotateTriggered=false;
     let horizontalRemainder=0,warningShown=false;
@@ -6044,19 +6074,19 @@ function bindOneFingerGestures() {
         }
         const id=pointerId;
         reset();
-        try{if(pad.hasPointerCapture(id))pad.releasePointerCapture(id);}catch(_){}
+        try{if(hitArea.hasPointerCapture(id))hitArea.releasePointerCapture(id);}catch(_){}
     };
-    pad.addEventListener('pointerdown',ev=>{
+    hitArea.addEventListener('pointerdown',ev=>{
         if(pointerId!==null||!canAct()||(ev.pointerType==='mouse'&&ev.button!==0)) return;
         ev.preventDefault();
         pointerId=ev.pointerId;startX=lastX=ev.clientX;startY=lastY=ev.clientY;
         startedAt=performance.now();lockedAxis=null;softDropActive=false;hardDropped=false;upRotateTriggered=false;maxDistance=0;
         horizontalRemainder=0;warningShown=false;
-        try{pad.setPointerCapture(ev.pointerId);}catch(_){}
+        try{hitArea.setPointerCapture(ev.pointerId);}catch(_){}
         pad.classList.add('active');
         status.textContent='ЖЕСТ РАСПОЗНАЁТСЯ';
     },{passive:false});
-    pad.addEventListener('pointermove',ev=>{
+    hitArea.addEventListener('pointermove',ev=>{
         if(pointerId!==ev.pointerId) return;
         ev.preventDefault();
         if(canAct()){
@@ -6064,11 +6094,15 @@ function bindOneFingerGestures() {
             processPoint(ev.clientX,ev.clientY);
         }
     },{passive:false});
-    pad.addEventListener('pointerup',finish,{passive:false});
-    pad.addEventListener('pointercancel',finish,{passive:false});
-    pad.addEventListener('lostpointercapture',()=>{if(pointerId!==null)reset();});
+    hitArea.addEventListener('pointerup',finish,{passive:false});
+    hitArea.addEventListener('pointercancel',finish,{passive:false});
+    hitArea.addEventListener('lostpointercapture',()=>{if(pointerId!==null)reset();});
     pad.addEventListener('contextmenu',ev=>ev.preventDefault());
     window.addEventListener('blur',reset);
+    window.addEventListener('resize',syncOneFingerGestureSurface,{passive:true});
+    window.visualViewport?.addEventListener('resize',syncOneFingerGestureSurface,{passive:true});
+    window.visualViewport?.addEventListener('scroll',syncOneFingerGestureSurface,{passive:true});
+    syncOneFingerGestureSurface();
 }
 
 // Floating four-way joystick: press anywhere to anchor, drag to choose direction, tap to hard-drop.
