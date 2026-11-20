@@ -6031,9 +6031,10 @@ function bindMobileStick() {
     const consumeAccumulator=()=>{
         while(Math.abs(moveAccumulator)>=stepPx){
             const direction=Math.sign(moveAccumulator);
-            const startedAt=performance.now();
+            const diagnostic=touchDiagnostics.enabled;
+            const startedAt=diagnostic?performance.now():0;
             const moved=playerMove(direction);
-            touchDiagnostics.record('move',[startedAt,performance.now(),direction,moved?1:0,moveAccumulator]);
+            if(diagnostic) touchDiagnostics.record('move',[startedAt,performance.now(),direction,moved?1:0,moveAccumulator]);
             if(!moved){ moveAccumulator=0; reversalBuffer=0; break; }
             moveAccumulator-=direction*stepPx;
         }
@@ -6069,8 +6070,9 @@ function bindMobileStick() {
         el.classList.remove('pressed');
     };
     const applyMovementSamples=(samples,sourceEvent,source='pointermove')=>{
-        const receivedAt=performance.now();
-        touchDiagnostics.record('batch',[source,sourceEvent?.timeStamp??null,receivedAt,samples.length,sourceEvent?.pointerType??null]);
+        const diagnostic=touchDiagnostics.enabled;
+        const receivedAt=diagnostic?performance.now():0;
+        if(diagnostic) touchDiagnostics.record('batch',[source,sourceEvent?.timeStamp??null,receivedAt,samples.length,sourceEvent?.pointerType??null]);
         for(let i=0;i<samples.length;i++){
             const sample=samples[i];
             const dx=sample.clientX-lastPointerX;
@@ -6078,7 +6080,7 @@ function bindMobileStick() {
             totalFingerDx+=dx;
             const visualDx=Math.max(-maxTravel,Math.min(maxTravel,totalFingerDx));
             el.style.setProperty('--stick-x',`${visualDx}px`);
-            touchDiagnostics.record('sample',[sample.timeStamp??null,receivedAt,sample.clientX,dx,i,samples.length,moveAccumulator,reversalBuffer]);
+            if(diagnostic) touchDiagnostics.record('sample',[sample.timeStamp??null,receivedAt,sample.clientX,dx,i,samples.length,moveAccumulator,reversalBuffer]);
             if(!canMove()) { moveAccumulator=0; reversalBuffer=0; continue; }
             applyDelta(dx);
         }
@@ -6093,7 +6095,7 @@ function bindMobileStick() {
         const rect=el.getBoundingClientRect();
         maxTravel=Math.max(42,(rect.width-48)*.5);
         stepPx=Math.max(10,Math.min(18,rect.width*.075))/controlSettings.sensitivity;
-        touchDiagnostics.record('pointerdown',[ev.timeStamp,ev.pointerType,ev.clientX,stepPx,rect.width,controlSettings.sensitivity]);
+        if(touchDiagnostics.enabled) touchDiagnostics.record('pointerdown',[ev.timeStamp,ev.pointerType,ev.clientX,stepPx,rect.width,controlSettings.sensitivity]);
         try{el.setPointerCapture(ev.pointerId);}catch(_){}
         el.classList.add('pressed');
     },{passive:false});
@@ -6108,17 +6110,17 @@ function bindMobileStick() {
         ev.preventDefault?.();
         const id=pointerId;
         if(applyFinalCoordinate && Number.isFinite(ev.clientX) && ev.clientX!==lastPointerX){
-            touchDiagnostics.record('pointerup-final-coordinate',[ev.timeStamp,ev.clientX,lastPointerX,ev.clientX-lastPointerX]);
+            if(touchDiagnostics.enabled) touchDiagnostics.record('pointerup-final-coordinate',[ev.timeStamp,ev.clientX,lastPointerX,ev.clientX-lastPointerX]);
             applyMovementSamples([ev],ev,'pointerup-final');
         }
-        touchDiagnostics.record(applyFinalCoordinate?'pointerup':'pointercancel',[ev.timeStamp??null,ev.clientX??null,lastPointerX,moveAccumulator,reversalBuffer]);
+        if(touchDiagnostics.enabled) touchDiagnostics.record(applyFinalCoordinate?'pointerup':'pointercancel',[ev.timeStamp??null,ev.clientX??null,lastPointerX,moveAccumulator,reversalBuffer]);
         reset();
         touchDiagnostics.flush();
         try{if(el.hasPointerCapture(id))el.releasePointerCapture(id);}catch(_){}
     };
     el.addEventListener('pointerup',ev=>finish(ev,true),{passive:false});
     el.addEventListener('pointercancel',ev=>finish(ev,false),{passive:false});
-    el.addEventListener('lostpointercapture',()=>{if(pointerId!==null){touchDiagnostics.record('lostpointercapture',[lastPointerX]);reset();touchDiagnostics.flush();}});
+    el.addEventListener('lostpointercapture',()=>{if(pointerId!==null){if(touchDiagnostics.enabled)touchDiagnostics.record('lostpointercapture',[lastPointerX]);reset();touchDiagnostics.flush();}});
     el.addEventListener('contextmenu',ev=>ev.preventDefault());
     el.addEventListener('keydown',ev=>{
         if(!canMove()) return;
@@ -6126,7 +6128,7 @@ function bindMobileStick() {
             ev.preventDefault(); playerMove(ev.key==='ArrowLeft'?-1:1);
         }
     });
-    window.addEventListener('blur',()=>{if(pointerId!==null)touchDiagnostics.record('blur',[lastPointerX]);reset();touchDiagnostics.flush();});
+    window.addEventListener('blur',()=>{if(pointerId!==null&&touchDiagnostics.enabled)touchDiagnostics.record('blur',[lastPointerX]);reset();touchDiagnostics.flush();});
 }
 
 bindMobileStick();
