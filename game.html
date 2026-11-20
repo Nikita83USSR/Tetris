@@ -5942,10 +5942,11 @@ function bindMobileStick() {
     const el=document.getElementById('mc-stick');
     const thumb=document.getElementById('mc-stick-thumb');
     if(!el || !thumb) return;
-    let pointerId=null,startX=0,issuedSteps=0,stepPx=18,maxSteps=4,maxTravel=68,lastMoveX=0,lastMoveAt=0,microStepDir=0;
+    let pointerId=null,startX=0,issuedSteps=0,stepPx=18,maxSteps=4,maxTravel=68,microStepDir=0;
+    let lastX=0,lastAt=0,velocityEMA=0;
     const canMove=()=>!paused&&!isGameOver&&!lineClearAnim;
     const reset=()=>{
-        pointerId=null; issuedSteps=0; microStepDir=0;
+        pointerId=null; issuedSteps=0; microStepDir=0; velocityEMA=0;
         el.style.setProperty('--stick-x','0px');
         el.setAttribute('aria-valuenow','0');
         el.setAttribute('aria-valuetext','Нейтральное положение');
@@ -5953,25 +5954,29 @@ function bindMobileStick() {
     };
     const moveTo=(clientX)=>{
         const now=performance.now();
+        const elapsed=Math.max(1,now-lastAt);
+        const instantVelocity=Math.abs(clientX-lastX)/elapsed;
+        // Smooth event noise while retaining quick, intentional flicks.
+        velocityEMA=velocityEMA*.58+instantVelocity*.42;
+        lastX=clientX; lastAt=now;
         const rawDx=clientX-startX;
-        const moveVelocity=Math.abs(clientX-lastMoveX)/Math.max(1,now-lastMoveAt);
-        lastMoveX=clientX; lastMoveAt=now;
         const dx=Math.max(-maxTravel,Math.min(maxTravel,rawDx));
         el.style.setProperty('--stick-x',`${dx}px`);
         if(!canMove()) return;
-        const dir=Math.sign(dx);
-        const magnitude=Math.abs(dx);
+        const dir=Math.sign(dx), magnitude=Math.abs(dx);
         const hysteresis=stepPx*.23;
         let count=(Math.sign(issuedSteps)===dir)?Math.abs(issuedSteps):0;
+        // Primary slider behavior: distance-based multi-cell tracking remains in charge.
         while(count<maxSteps && magnitude >= (count+1)*stepPx+hysteresis) count++;
         while(count>0 && magnitude <= count*stepPx-hysteresis) count--;
-        // One deliberate, fast micro-swipe may place a single cell sooner.
-        // Keep that step latched until the finger returns close to neutral.
-        if(microStepDir===dir && magnitude>5) count=Math.max(count,1);
-        else if(magnitude<=5) microStepDir=0;
-        if(count===0 && dir!==0 && magnitude>=9 && moveVelocity>=0.55){
+        // Micro assist is limited to the first cell and never overrides a full swipe.
+        if(magnitude<=5) microStepDir=0;
+        else if(microStepDir!==0 && microStepDir!==dir) microStepDir=0;
+        const microRange=magnitude>=8 && magnitude<(stepPx+hysteresis);
+        if(count===0 && dir!==0 && microRange && velocityEMA>=0.72){
             count=1; microStepDir=dir;
         }
+        if(microStepDir===dir && magnitude>5 && count===0) count=1;
         const desired=dir*count;
         const diff=desired-issuedSteps;
         if(diff!==0){
@@ -5986,7 +5991,8 @@ function bindMobileStick() {
     el.addEventListener('pointerdown',ev=>{
         if(pointerId!==null || !canMove() || (ev.pointerType==='mouse'&&ev.button!==0)) return;
         ev.preventDefault();
-        pointerId=ev.pointerId; startX=ev.clientX; issuedSteps=0;
+        pointerId=ev.pointerId; startX=ev.clientX; issuedSteps=0; microStepDir=0;
+        lastX=ev.clientX; lastAt=performance.now(); velocityEMA=0;
         const rect=el.getBoundingClientRect();
         maxTravel=Math.max(42,(rect.width-48)*.5);
         stepPx=Math.max(12,Math.min(22,rect.width*.087))/controlSettings.sensitivity;
