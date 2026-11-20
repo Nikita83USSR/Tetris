@@ -5945,34 +5945,14 @@ function bindOneFingerGestures() {
         pad.classList.remove('active','warning');
         status.textContent='КАСАЙСЯ И ВЕДИ ПАЛЕЦ В НУЖНУЮ СТОРОНУ';
     };
-    const finish=ev=>{
-        if(pointerId===null||(ev.pointerId!==undefined&&ev.pointerId!==pointerId)) return;
-        ev.preventDefault?.();
-        const id=pointerId;
-        reset();
-        try{if(pad.hasPointerCapture(id))pad.releasePointerCapture(id);}catch(_){}
-    };
-    pad.addEventListener('pointerdown',ev=>{
-        if(pointerId!==null||!canAct()||(ev.pointerType==='mouse'&&ev.button!==0)) return;
-        ev.preventDefault();
-        pointerId=ev.pointerId;startX=lastX=ev.clientX;startY=lastY=ev.clientY;
-        startedAt=performance.now();lockedAxis=null;softDropActive=false;hardDropped=false;rotated=false;
-        horizontalRemainder=0;warningShown=false;
-        try{pad.setPointerCapture(ev.pointerId);}catch(_){}
-        pad.classList.add('active');
-        status.textContent='ЖЕСТ РАСПОЗНАЁТСЯ';
-    },{passive:false});
-    pad.addEventListener('pointermove',ev=>{
-        if(pointerId!==ev.pointerId) return;
-        ev.preventDefault();
-        if(!canAct()) return;
-        const dx=ev.clientX-startX,dy=ev.clientY-startY;
+    const processPoint=(x,y)=>{
+        const dx=x-startX,dy=y-startY;
         if(!lockedAxis && Math.max(Math.abs(dx),Math.abs(dy))>=20){
             lockedAxis=Math.abs(dx)>Math.abs(dy)*1.12?'horizontal':'vertical';
             if(lockedAxis==='vertical'&&dy<0&&!rotated){playerRotate(1);rotated=true;status.textContent='ПОВОРОТ';}
         }
         if(lockedAxis==='horizontal'){
-            const delta=ev.clientX-lastX;
+            const delta=x-lastX;
             horizontalRemainder+=delta;
             const step=Math.max(13,21/controlSettings.sensitivity);
             while(Math.abs(horizontalRemainder)>=step){
@@ -5991,13 +5971,36 @@ function bindOneFingerGestures() {
                 status.textContent='ВНИМАНИЕ · ПРОДОЛЖИ ДЛЯ БРОСКА';
                 haptic(10);
             }
-            // Two-stage guard: pass the warning threshold, then deliberately travel farther.
             if(dy>=150&&performance.now()-startedAt>=140&&!hardDropped){
                 hardDropped=true;softDropHeld=false;softDropActive=false;
                 playerHardDrop();status.textContent='БРОСОК';
             }
         }
-        lastX=ev.clientX;lastY=ev.clientY;
+        lastX=x;lastY=y;
+    };
+    const finish=ev=>{
+        if(pointerId===null||(ev.pointerId!==undefined&&ev.pointerId!==pointerId)) return;
+        ev.preventDefault?.();
+        if(ev.type==='pointerup'&&Number.isFinite(ev.clientX)&&Number.isFinite(ev.clientY)&&
+           (ev.clientX!==lastX||ev.clientY!==lastY)&&canAct()) processPoint(ev.clientX,ev.clientY);
+        const id=pointerId;
+        reset();
+        try{if(pad.hasPointerCapture(id))pad.releasePointerCapture(id);}catch(_){}
+    };
+    pad.addEventListener('pointerdown',ev=>{
+        if(pointerId!==null||!canAct()||(ev.pointerType==='mouse'&&ev.button!==0)) return;
+        ev.preventDefault();
+        pointerId=ev.pointerId;startX=lastX=ev.clientX;startY=lastY=ev.clientY;
+        startedAt=performance.now();lockedAxis=null;softDropActive=false;hardDropped=false;rotated=false;
+        horizontalRemainder=0;warningShown=false;
+        try{pad.setPointerCapture(ev.pointerId);}catch(_){}
+        pad.classList.add('active');
+        status.textContent='ЖЕСТ РАСПОЗНАЁТСЯ';
+    },{passive:false});
+    pad.addEventListener('pointermove',ev=>{
+        if(pointerId!==ev.pointerId) return;
+        ev.preventDefault();
+        if(canAct()) processPoint(ev.clientX,ev.clientY);
     },{passive:false});
     pad.addEventListener('pointerup',finish,{passive:false});
     pad.addEventListener('pointercancel',finish,{passive:false});
