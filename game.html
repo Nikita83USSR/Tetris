@@ -1870,7 +1870,7 @@
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
-<div id="build-version-badge" aria-label="Тестовая сборка версии 0.5">TEST v0.5</div>
+<div id="build-version-badge" aria-label="Тестовая сборка версии 0.5">TEST v0.6</div>
 
 <div id="game-shell">
     <div id="game-container">
@@ -2045,7 +2045,7 @@
         </div>
       </div>
       <div id="mc-onefinger-layout" class="mc-onefinger-layout hidden" role="application" aria-label="Однопальцевое управление свайпами">
-        <div class="mc-onefinger-mark"><strong>↑ ↓ ← →</strong>ОДИН ПАЛЕЦ · СВАЙПЫ<small>ВНИЗ: КОРОТКО — МЯГКО · ДЛИННО — БРОСОК</small></div>
+        <div class="mc-onefinger-mark"><strong>↻　← ↓ →</strong>ОДИН ПАЛЕЦ · ТАП И СВАЙП<small>ТАП — ПОВОРОТ · ВЛЕВО / ВПРАВО — ДВИЖЕНИЕ · ВНИЗ — ПАДЕНИЕ</small></div>
         <div id="mc-onefinger-status" class="mc-onefinger-status">КАСАЙСЯ И ВЕДИ ПАЛЕЦ В НУЖНУЮ СТОРОНУ</div>
       </div>
       <div id="mc-joystick-layout" class="mc-joystick-layout hidden">
@@ -5034,9 +5034,9 @@ function updateControlSettingsUI() {
     const note=document.getElementById('haptics-support-note');
     if (note) note.textContent=typeof navigator.vibrate==='function'?'Короткий отклик при повороте, фиксации и очистке':'Браузер или устройство не поддерживает вибрацию';
     const desc=document.getElementById('control-mode-description');
-    if (desc) desc.textContent=controlSettings.mode==='oneFinger'?'Один палец: свайпы влево/вправо двигают фигуру, вверх — поворот, вниз — мягкое падение. Длинный свайп вниз с защитным порогом — бросок.':'Два пальца: прежняя схема — горизонтальный слайдер и отдельные кнопки поворота и падения.';
+    if (desc) desc.textContent=controlSettings.mode==='oneFinger'?'Один палец: тап в любой точке зоны — поворот; свайпы влево/вправо — движение, вниз — мягкое падение или защищённый бросок.':'Два пальца: прежняя схема — горизонтальный слайдер и отдельные кнопки поворота и падения.';
     const guide=document.getElementById('controls-guide');
-    if (guide && isMobile) guide.innerHTML=controlSettings.mode==='oneFinger'?'ОДИН ПАЛЕЦ: ← → ДВИЖЕНИЕ · ↑ ПОВОРОТ<br>↓ КОРОТКО — МЯГКО · ДЛИННО — БРОСОК':'ДВА ПАЛЬЦА: СЛАЙДЕР ← → · КНОПКИ ПОВОРОТА И ПАДЕНИЯ';
+    if (guide && isMobile) guide.innerHTML=controlSettings.mode==='oneFinger'?'ОДИН ПАЛЕЦ: ТАП — ПОВОРОТ · ← → ДВИЖЕНИЕ<br>↓ КОРОТКО — МЯГКО · ДЛИННО — БРОСОК':'ДВА ПАЛЬЦА: СЛАЙДЕР ← → · КНОПКИ ПОВОРОТА И ПАДЕНИЯ';
 }
 function initMetaSystems() {
     loadSystemVoiceSettings();
@@ -5934,14 +5934,14 @@ function bindOneFingerGestures() {
     const pad=document.getElementById('mc-onefinger-layout');
     const status=document.getElementById('mc-onefinger-status');
     if(!pad||!status) return;
-    let pointerId=null,startX=0,startY=0,lastX=0,lastY=0,startedAt=0;
-    let lockedAxis=null,softDropActive=false,hardDropped=false,rotated=false;
+    let pointerId=null,startX=0,startY=0,lastX=0,lastY=0,startedAt=0,maxDistance=0;
+    let lockedAxis=null,softDropActive=false,hardDropped=false;
     let horizontalRemainder=0,warningShown=false;
     const canAct=()=>!paused&&!isGameOver&&!lineClearAnim&&!gameOverAnim;
     const reset=()=>{
         if(softDropActive){softDropHeld=false;softDropTimer=0;softDropActive=false;}
-        pointerId=null;lockedAxis=null;hardDropped=false;rotated=false;
-        horizontalRemainder=0;warningShown=false;
+        pointerId=null;lockedAxis=null;hardDropped=false;
+        horizontalRemainder=0;warningShown=false;maxDistance=0;
         pad.classList.remove('active','warning');
         status.textContent='КАСАЙСЯ И ВЕДИ ПАЛЕЦ В НУЖНУЮ СТОРОНУ';
     };
@@ -5949,7 +5949,6 @@ function bindOneFingerGestures() {
         const dx=x-startX,dy=y-startY;
         if(!lockedAxis && Math.max(Math.abs(dx),Math.abs(dy))>=20){
             lockedAxis=Math.abs(dx)>Math.abs(dy)*1.12?'horizontal':'vertical';
-            if(lockedAxis==='vertical'&&dy<0&&!rotated){playerRotate(1);rotated=true;status.textContent='ПОВОРОТ';}
         }
         if(lockedAxis==='horizontal'){
             const delta=x-lastX;
@@ -5981,8 +5980,14 @@ function bindOneFingerGestures() {
     const finish=ev=>{
         if(pointerId===null||(ev.pointerId!==undefined&&ev.pointerId!==pointerId)) return;
         ev.preventDefault?.();
-        if(ev.type==='pointerup'&&Number.isFinite(ev.clientX)&&Number.isFinite(ev.clientY)&&
-           (ev.clientX!==lastX||ev.clientY!==lastY)&&canAct()) processPoint(ev.clientX,ev.clientY);
+        if(ev.type==='pointerup'&&Number.isFinite(ev.clientX)&&Number.isFinite(ev.clientY)){
+            maxDistance=Math.max(maxDistance,Math.hypot(ev.clientX-startX,ev.clientY-startY));
+            if((ev.clientX!==lastX||ev.clientY!==lastY)&&canAct()) processPoint(ev.clientX,ev.clientY);
+            if(maxDistance<=12&&performance.now()-startedAt<=350&&canAct()){
+                playerRotate(1);
+                status.textContent='ПОВОРОТ';
+            }
+        }
         const id=pointerId;
         reset();
         try{if(pad.hasPointerCapture(id))pad.releasePointerCapture(id);}catch(_){}
@@ -5991,7 +5996,7 @@ function bindOneFingerGestures() {
         if(pointerId!==null||!canAct()||(ev.pointerType==='mouse'&&ev.button!==0)) return;
         ev.preventDefault();
         pointerId=ev.pointerId;startX=lastX=ev.clientX;startY=lastY=ev.clientY;
-        startedAt=performance.now();lockedAxis=null;softDropActive=false;hardDropped=false;rotated=false;
+        startedAt=performance.now();lockedAxis=null;softDropActive=false;hardDropped=false;maxDistance=0;
         horizontalRemainder=0;warningShown=false;
         try{pad.setPointerCapture(ev.pointerId);}catch(_){}
         pad.classList.add('active');
@@ -6000,7 +6005,10 @@ function bindOneFingerGestures() {
     pad.addEventListener('pointermove',ev=>{
         if(pointerId!==ev.pointerId) return;
         ev.preventDefault();
-        if(canAct()) processPoint(ev.clientX,ev.clientY);
+        if(canAct()){
+            maxDistance=Math.max(maxDistance,Math.hypot(ev.clientX-startX,ev.clientY-startY));
+            processPoint(ev.clientX,ev.clientY);
+        }
     },{passive:false});
     pad.addEventListener('pointerup',finish,{passive:false});
     pad.addEventListener('pointercancel',finish,{passive:false});
