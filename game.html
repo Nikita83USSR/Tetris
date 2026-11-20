@@ -5969,14 +5969,14 @@ function bindMobileStick() {
     let lastX=0,lastAt=0;
     const canMove=()=>!paused&&!isGameOver&&!lineClearAnim;
     const reset=()=>{
-        pointerId=null; issuedSteps=0; microStepDir=0; velocityEMA=0;
+        pointerId=null; issuedSteps=0; microStepDir=0;
         el.style.setProperty('--stick-x','0px');
         el.setAttribute('aria-valuenow','0');
         el.setAttribute('aria-valuetext','Нейтральное положение');
         el.classList.remove('pressed');
     };
     const moveTo=(clientX)=>{
-        lastX=clientX; lastAt=performance.now();
+        
         const rawDx=clientX-startX;
         const dx=Math.max(-maxTravel,Math.min(maxTravel,rawDx));
         el.style.setProperty('--stick-x',`${dx}px`);
@@ -6012,7 +6012,7 @@ function bindMobileStick() {
         if(pointerId!==null || !canMove() || (ev.pointerType==='mouse'&&ev.button!==0)) return;
         ev.preventDefault();
         pointerId=ev.pointerId; startX=ev.clientX; issuedSteps=0; microStepDir=0;
-        lastX=ev.clientX; lastAt=performance.now(); velocityEMA=0;
+        
         const rect=el.getBoundingClientRect();
         maxTravel=Math.max(42,(rect.width-48)*.5);
         stepPx=Math.max(10,Math.min(18,rect.width*.075))/controlSettings.sensitivity;
