@@ -3577,6 +3577,8 @@ function createMatrix(w, h) {
     return m;
 }
 
+// Keep particle-heavy effects bounded on phones to prevent transient frame spikes.
+const PARTICLE_CAP = isMobile ? 420 : 760;
 // ===================== PARTICLES =====================
 function createExplosion(x, y, colorIdx) {
     const col = COLORS[colorIdx] || '#fff';
@@ -3590,7 +3592,7 @@ function createExplosion(x, y, colorIdx) {
             size: 0.2 + Math.random() * 0.4
         });
     }
-    if (particles.length > 520) particles.splice(0, particles.length - 520);
+    if (particles.length > PARTICLE_CAP) particles.splice(0, particles.length - PARTICLE_CAP);
 }
 
 function createLineShards(rowY) {
@@ -3632,7 +3634,7 @@ function createLineShards(rowY) {
             });
         }
     }
-    if (particles.length > 760) particles.splice(0, particles.length - 760);
+    if (particles.length > PARTICLE_CAP) particles.splice(0, particles.length - PARTICLE_CAP);
 }
 
 function playRowClearImpact(rowIndex, totalRows) {
@@ -3658,6 +3660,7 @@ function createLandingBurst(piece, pos) {
             });
         }
     }));
+    if (particles.length > PARTICLE_CAP) particles.splice(0, particles.length - PARTICLE_CAP);
     screenFlash = Math.max(screenFlash, 0.12);
 }
 
