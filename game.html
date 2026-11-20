@@ -1617,6 +1617,15 @@
         .settings-toggle.off { color:#a2b2c8; border-color:rgba(125,146,174,.28); background:linear-gradient(145deg,rgba(37,47,65,.72),rgba(9,14,28,.95)); }
 
         .mc-slider-layout { display:flex; flex-direction:column; gap:9px; width:100%; }
+        .mc-onefinger-layout { width:min(100%,440px); height:154px; margin:0 auto; position:relative; display:flex; align-items:center; justify-content:center; border:1px solid rgba(76,218,255,.28); border-radius:18px; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; background:radial-gradient(ellipse at 50% 100%,rgba(24,106,137,.30),rgba(5,13,29,.90) 72%); box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 20px rgba(0,0,0,.24); }
+        .mc-onefinger-layout::before { content:""; position:absolute; left:50%; top:50%; width:112px; height:112px; transform:translate(-50%,-50%); border:1px dashed rgba(104,221,245,.23); border-radius:50%; pointer-events:none; }
+        .mc-onefinger-layout.active { border-color:rgba(255,172,100,.75); box-shadow:inset 0 0 24px rgba(0,220,255,.08),0 0 18px rgba(255,132,74,.14); }
+        .mc-onefinger-mark { position:relative; z-index:1; text-align:center; color:rgba(186,232,247,.74); pointer-events:none; font-size:.56rem; font-weight:900; letter-spacing:.16em; }
+        .mc-onefinger-mark strong { display:block; color:#8defff; font-size:1.35rem; line-height:1.3; letter-spacing:.28em; text-shadow:0 0 12px rgba(49,224,255,.34); }
+        .mc-onefinger-mark small { display:block; margin-top:7px; color:rgba(255,190,133,.75); font-size:.46rem; letter-spacing:.11em; }
+        .mc-onefinger-status { position:absolute; left:8px; right:8px; bottom:7px; z-index:2; text-align:center; color:rgba(151,205,226,.55); font-size:.43rem; font-weight:800; letter-spacing:.10em; pointer-events:none; }
+        .mc-onefinger-layout.warning .mc-onefinger-status { color:#ffc17b; text-shadow:0 0 9px rgba(255,145,70,.35); }
+        .mc-onefinger-layout.warning { border-color:rgba(255,165,86,.72); }
         .mc-joystick-layout { width:100%; display:flex; align-items:center; justify-content:center; min-height:148px; }
         .mc-joystick-pad {
             position:relative; width:clamp(136px,39vw,168px); height:clamp(136px,39vw,168px); flex:0 0 auto;
@@ -1861,7 +1870,7 @@
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
-<div id="build-version-badge" aria-label="Тестовая сборка версии 0.4">TEST v0.4</div>
+<div id="build-version-badge" aria-label="Тестовая сборка версии 0.5">TEST v0.5</div>
 
 <div id="game-shell">
     <div id="game-container">
@@ -1979,10 +1988,10 @@
             <section class="settings-card">
                 <div class="settings-title">МОБИЛЬНОЕ УПРАВЛЕНИЕ</div>
                 <div class="settings-mode-grid">
-                    <button id="control-mode-slider" class="secondary-btn settings-mode-btn" type="button">СЛАЙДЕР</button>
-                    <button id="control-mode-joystick" class="secondary-btn settings-mode-btn" type="button">ПЛАВАЮЩИЙ ДЖОЙСТИК</button>
+                    <button id="control-mode-slider" class="secondary-btn settings-mode-btn" type="button">ДВА ПАЛЬЦА · КЛАССИКА</button>
+                    <button id="control-mode-joystick" class="secondary-btn settings-mode-btn" type="button">ОДИН ПАЛЕЦ · ЖЕСТЫ</button>
                 </div>
-                <div class="settings-current" id="control-mode-description">Слайдер: сдвиг пальца перемещает фигуру по клеткам.</div>
+                <div class="settings-current" id="control-mode-description">Два пальца: слайдер и отдельные кнопки. Один палец: управление свайпами в нижней зоне.</div>
             </section>
             <section class="settings-card">
                 <div class="settings-title"><label for="control-sensitivity">ЧУВСТВИТЕЛЬНОСТЬ УПРАВЛЕНИЯ</label><b id="control-sensitivity-value">100%</b></div>
@@ -2034,6 +2043,10 @@
                 <span class="mc-btn-icon">⇊</span><span class="mc-btn-label">БРОСОК</span>
             </button>
         </div>
+      </div>
+      <div id="mc-onefinger-layout" class="mc-onefinger-layout hidden" role="application" aria-label="Однопальцевое управление свайпами">
+        <div class="mc-onefinger-mark"><strong>↑ ↓ ← →</strong>ОДИН ПАЛЕЦ · СВАЙПЫ<small>ВНИЗ: КОРОТКО — МЯГКО · ДЛИННО — БРОСОК</small></div>
+        <div id="mc-onefinger-status" class="mc-onefinger-status">КАСАЙСЯ И ВЕДИ ПАЛЕЦ В НУЖНУЮ СТОРОНУ</div>
       </div>
       <div id="mc-joystick-layout" class="mc-joystick-layout hidden">
         <div id="mc-joystick-pad" class="mc-joystick-pad" role="application" aria-label="Плавающий джойстик: вверх поворот, влево и вправо перемещение, вниз ускорение, тап — бросок">
@@ -4972,7 +4985,7 @@ function safeSave(key, value) {
 }
 
 const CONTROL_SETTINGS_KEY = 'cyberTetrisControlSettingsV1';
-let controlSettings = { mode:'slider', sensitivity:1, haptics:true };
+let controlSettings = { mode:'twoFinger', sensitivity:1, haptics:true };
 let lastHapticAt = 0;
 function haptic(pattern = 7, important = false) {
     if (!isMobile || !controlSettings.haptics || typeof navigator.vibrate !== 'function') return;
@@ -4984,7 +4997,7 @@ function haptic(pattern = 7, important = false) {
 function loadControlSettings() {
     const saved=safeLoad(CONTROL_SETTINGS_KEY,null);
     if (saved && typeof saved==='object') {
-        controlSettings.mode=saved.mode==='joystick'?'joystick':'slider';
+        controlSettings.mode=(saved.mode==='oneFinger'||saved.mode==='joystick')?'oneFinger':'twoFinger';
         controlSettings.sensitivity=Math.max(.7,Math.min(1.5,Number(saved.sensitivity)||1));
         controlSettings.haptics=saved.haptics!==false;
     }
@@ -4994,16 +5007,18 @@ function loadControlSettings() {
 function saveControlSettings() { safeSave(CONTROL_SETTINGS_KEY,controlSettings); }
 function applyMobileControlMode() {
     const slider=document.getElementById('mc-slider-layout');
+    const oneFinger=document.getElementById('mc-onefinger-layout');
     const joystick=document.getElementById('mc-joystick-layout');
-    if (slider) slider.classList.toggle('hidden',controlSettings.mode!=='slider');
-    if (joystick) joystick.classList.toggle('hidden',controlSettings.mode!=='joystick');
+    if (slider) slider.classList.toggle('hidden',controlSettings.mode!=='twoFinger');
+    if (oneFinger) oneFinger.classList.toggle('hidden',controlSettings.mode!=='oneFinger');
+    if (joystick) joystick.classList.add('hidden');
 }
 function updateControlSettingsUI() {
     updateSystemVoiceUI();
     const sliderBtn=document.getElementById('control-mode-slider');
     const joystickBtn=document.getElementById('control-mode-joystick');
-    if (sliderBtn) sliderBtn.classList.toggle('selected',controlSettings.mode==='slider');
-    if (joystickBtn) joystickBtn.classList.toggle('selected',controlSettings.mode==='joystick');
+    if (sliderBtn) sliderBtn.classList.toggle('selected',controlSettings.mode==='twoFinger');
+    if (joystickBtn) joystickBtn.classList.toggle('selected',controlSettings.mode==='oneFinger');
     const sens=document.getElementById('control-sensitivity');
     const sensValue=document.getElementById('control-sensitivity-value');
     if (sens) sens.value=String(Math.round(controlSettings.sensitivity*100));
@@ -5019,9 +5034,9 @@ function updateControlSettingsUI() {
     const note=document.getElementById('haptics-support-note');
     if (note) note.textContent=typeof navigator.vibrate==='function'?'Короткий отклик при повороте, фиксации и очистке':'Браузер или устройство не поддерживает вибрацию';
     const desc=document.getElementById('control-mode-description');
-    if (desc) desc.textContent=controlSettings.mode==='joystick'?'Плавающий джойстик: вверх — поворот, влево/вправо — движение, вниз — ускорение, тап — бросок.':'Слайдер: сдвиг пальца перемещает фигуру по клеткам; кнопки отвечают за поворот и падение.';
+    if (desc) desc.textContent=controlSettings.mode==='oneFinger'?'Один палец: свайпы влево/вправо двигают фигуру, вверх — поворот, вниз — мягкое падение. Длинный свайп вниз с защитным порогом — бросок.':'Два пальца: прежняя схема — горизонтальный слайдер и отдельные кнопки поворота и падения.';
     const guide=document.getElementById('controls-guide');
-    if (guide && isMobile) guide.innerHTML=controlSettings.mode==='joystick'?'ПЛАВАЮЩИЙ ДЖОЙСТИК: ↑ ПОВОРОТ · ← → ДВИЖЕНИЕ<br>↓ УСКОРЕНИЕ · ТАП — МГНОВЕННЫЙ БРОСОК':'СЛАЙДЕР ← → — ПЕРЕМЕЩЕНИЕ · ПОВОРОТ — ВРАЩЕНИЕ<br>БРОСОК — МГНОВЕННО ВНИЗ · УСКОРИТЬ — МЯГКОЕ ПАДЕНИЕ';
+    if (guide && isMobile) guide.innerHTML=controlSettings.mode==='oneFinger'?'ОДИН ПАЛЕЦ: ← → ДВИЖЕНИЕ · ↑ ПОВОРОТ<br>↓ КОРОТКО — МЯГКО · ДЛИННО — БРОСОК':'ДВА ПАЛЬЦА: СЛАЙДЕР ← → · КНОПКИ ПОВОРОТА И ПАДЕНИЯ';
 }
 function initMetaSystems() {
     loadSystemVoiceSettings();
@@ -5913,6 +5928,84 @@ function bindMobileBtn(id, onPress, repeat = false, onRelease = null) {
     el.addEventListener('contextmenu', ev => ev.preventDefault());
 }
 
+// One-finger gesture zone: horizontal swipes move, upward swipes rotate,
+// short downward swipes soft-drop; a guarded long downward swipe hard-drops.
+function bindOneFingerGestures() {
+    const pad=document.getElementById('mc-onefinger-layout');
+    const status=document.getElementById('mc-onefinger-status');
+    if(!pad||!status) return;
+    let pointerId=null,startX=0,startY=0,lastX=0,lastY=0,startedAt=0;
+    let lockedAxis=null,softDropActive=false,hardDropped=false,rotated=false;
+    let horizontalRemainder=0,warningShown=false;
+    const canAct=()=>!paused&&!isGameOver&&!lineClearAnim&&!gameOverAnim;
+    const reset=()=>{
+        if(softDropActive){softDropHeld=false;softDropTimer=0;softDropActive=false;}
+        pointerId=null;lockedAxis=null;hardDropped=false;rotated=false;
+        horizontalRemainder=0;warningShown=false;
+        pad.classList.remove('active','warning');
+        status.textContent='КАСАЙСЯ И ВЕДИ ПАЛЕЦ В НУЖНУЮ СТОРОНУ';
+    };
+    const finish=ev=>{
+        if(pointerId===null||(ev.pointerId!==undefined&&ev.pointerId!==pointerId)) return;
+        ev.preventDefault?.();
+        const id=pointerId;
+        reset();
+        try{if(pad.hasPointerCapture(id))pad.releasePointerCapture(id);}catch(_){}
+    };
+    pad.addEventListener('pointerdown',ev=>{
+        if(pointerId!==null||!canAct()||(ev.pointerType==='mouse'&&ev.button!==0)) return;
+        ev.preventDefault();
+        pointerId=ev.pointerId;startX=lastX=ev.clientX;startY=lastY=ev.clientY;
+        startedAt=performance.now();lockedAxis=null;softDropActive=false;hardDropped=false;rotated=false;
+        horizontalRemainder=0;warningShown=false;
+        try{pad.setPointerCapture(ev.pointerId);}catch(_){}
+        pad.classList.add('active');
+        status.textContent='ЖЕСТ РАСПОЗНАЁТСЯ';
+    },{passive:false});
+    pad.addEventListener('pointermove',ev=>{
+        if(pointerId!==ev.pointerId) return;
+        ev.preventDefault();
+        if(!canAct()) return;
+        const dx=ev.clientX-startX,dy=ev.clientY-startY;
+        if(!lockedAxis && Math.max(Math.abs(dx),Math.abs(dy))>=20){
+            lockedAxis=Math.abs(dx)>Math.abs(dy)*1.12?'horizontal':'vertical';
+            if(lockedAxis==='vertical'&&dy<0&&!rotated){playerRotate(1);rotated=true;status.textContent='ПОВОРОТ';}
+        }
+        if(lockedAxis==='horizontal'){
+            const delta=ev.clientX-lastX;
+            horizontalRemainder+=delta;
+            const step=Math.max(13,21/controlSettings.sensitivity);
+            while(Math.abs(horizontalRemainder)>=step){
+                const dir=Math.sign(horizontalRemainder);
+                if(!playerMove(dir)){horizontalRemainder=0;break;}
+                horizontalRemainder-=dir*step;
+            }
+            status.textContent=horizontalRemainder<0?'ДВИЖЕНИЕ ВЛЕВО':'ДВИЖЕНИЕ ВПРАВО';
+        } else if(lockedAxis==='vertical'&&dy>0){
+            if(dy>=25&&!softDropActive){
+                softDropActive=true;softDropHeld=true;softDropTimer=0;playerDrop(true);
+                status.textContent='МЯГКОЕ ПАДЕНИЕ';
+            }
+            if(dy>=104&&!warningShown&&!hardDropped){
+                warningShown=true;pad.classList.add('warning');
+                status.textContent='ВНИМАНИЕ · ПРОДОЛЖИ ДЛЯ БРОСКА';
+                haptic(10);
+            }
+            // Two-stage guard: pass the warning threshold, then deliberately travel farther.
+            if(dy>=150&&performance.now()-startedAt>=140&&!hardDropped){
+                hardDropped=true;softDropHeld=false;softDropActive=false;
+                playerHardDrop();status.textContent='БРОСОК';
+            }
+        }
+        lastX=ev.clientX;lastY=ev.clientY;
+    },{passive:false});
+    pad.addEventListener('pointerup',finish,{passive:false});
+    pad.addEventListener('pointercancel',finish,{passive:false});
+    pad.addEventListener('lostpointercapture',()=>{if(pointerId!==null)reset();});
+    pad.addEventListener('contextmenu',ev=>ev.preventDefault());
+    window.addEventListener('blur',reset);
+}
+
 // Floating four-way joystick: press anywhere to anchor, drag to choose direction, tap to hard-drop.
 function bindFloatingJoystick() {
     const pad=document.getElementById('mc-joystick-pad');
@@ -6180,6 +6273,7 @@ function bindMobileStick() {
 }
 
 bindMobileStick();
+bindOneFingerGestures();
 bindFloatingJoystick();
 bindMobileBtn('mc-down',  () => {
     if (paused || isGameOver || lineClearAnim) return;
@@ -6201,8 +6295,8 @@ document.getElementById('restart-btn').addEventListener('click', init);
 document.getElementById('mute-btn').addEventListener('click', toggleMute);
 document.getElementById('settings-btn').addEventListener('click', openSettings);
 document.getElementById('settings-back-btn').addEventListener('click', closeSettings);
-document.getElementById('control-mode-slider').addEventListener('click',()=>{controlSettings.mode='slider';saveControlSettings();applyMobileControlMode();updateControlSettingsUI();});
-document.getElementById('control-mode-joystick').addEventListener('click',()=>{controlSettings.mode='joystick';saveControlSettings();applyMobileControlMode();updateControlSettingsUI();});
+document.getElementById('control-mode-slider').addEventListener('click',()=>{controlSettings.mode='twoFinger';saveControlSettings();applyMobileControlMode();updateControlSettingsUI();});
+document.getElementById('control-mode-joystick').addEventListener('click',()=>{controlSettings.mode='oneFinger';saveControlSettings();applyMobileControlMode();updateControlSettingsUI();});
 document.getElementById('control-sensitivity').addEventListener('input',ev=>{controlSettings.sensitivity=Math.max(.7,Math.min(1.5,Number(ev.target.value)/100));saveControlSettings();updateControlSettingsUI();});
 document.getElementById('haptics-toggle').addEventListener('click',()=>{controlSettings.haptics=!controlSettings.haptics;saveControlSettings();updateControlSettingsUI();if(controlSettings.haptics)haptic(12,true);});
 document.getElementById('voice-toggle').addEventListener('click',()=>{systemVoiceEnabled=!systemVoiceEnabled;saveSystemVoiceSettings();updateSystemVoiceUI();if(!systemVoiceEnabled)stopSystemVoiceQueue();});
