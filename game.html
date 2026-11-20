@@ -3774,6 +3774,29 @@ function warmBlockSprites() {
 
 function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
     if (!value) return;
+    // Android browsers can fail to composite tiny offscreen canvases reliably.
+    // Draw mobile blocks directly on the main canvas; no sprite dependency.
+    if (isMobile) {
+        const color = COLORS[value];
+        context.save();
+        context.globalAlpha *= alpha;
+        context.shadowBlur = 0;
+        roundedPath(context, x + .055, y + .055, .89, .89, .10);
+        context.fillStyle = color;
+        context.fill();
+        context.strokeStyle = 'rgba(0,0,0,.36)';
+        context.lineWidth = .045;
+        context.stroke();
+        roundedPath(context, x + .12, y + .12, .76, .22, .045);
+        context.fillStyle = 'rgba(255,255,255,.24)';
+        context.fill();
+        roundedPath(context, x + .085, y + .085, .83, .83, .08);
+        context.strokeStyle = 'rgba(255,255,255,.20)';
+        context.lineWidth = .025;
+        context.stroke();
+        context.restore();
+        return;
+    }
     let sprites = blockSpriteCache[value];
     const sweep = ((time * .00042 + x * .11 + y * .07) % 2.25 + 2.25) % 2.25;
     const frame = Math.min(BLOCK_SPRITE_FRAMES - 1, Math.floor(sweep / 2.25 * BLOCK_SPRITE_FRAMES));
