@@ -5965,66 +5965,51 @@ function bindMobileStick() {
     const el=document.getElementById('mc-stick');
     const thumb=document.getElementById('mc-stick-thumb');
     if(!el || !thumb) return;
-    let pointerId=null,startX=0,issuedSteps=0,stepPx=18,maxSteps=4,maxTravel=68,microStepDir=0;
-    let lastX=0,lastAt=0;
+    let pointerId=null,lastPointerX=0,totalFingerDx=0,moveAccumulator=0,stepPx=18,maxTravel=68;
     const canMove=()=>!paused&&!isGameOver&&!lineClearAnim;
     const reset=()=>{
-        pointerId=null; issuedSteps=0; microStepDir=0;
+        pointerId=null; totalFingerDx=0; moveAccumulator=0;
         el.style.setProperty('--stick-x','0px');
         el.setAttribute('aria-valuenow','0');
         el.setAttribute('aria-valuetext','Нейтральное положение');
         el.classList.remove('pressed');
     };
-    const moveTo=(clientX)=>{
-        
-        const rawDx=clientX-startX;
-        const dx=Math.max(-maxTravel,Math.min(maxTravel,rawDx));
-        el.style.setProperty('--stick-x',`${dx}px`);
-        if(!canMove()) return;
-        const dir=Math.sign(dx), magnitude=Math.abs(dx);
-        const hysteresis=stepPx*.12;
-        let count=(Math.sign(issuedSteps)===dir)?Math.abs(issuedSteps):0;
-        // Primary slider behavior: distance-based multi-cell tracking remains in charge.
-        while(count<maxSteps && magnitude >= (count+1)*stepPx+hysteresis) count++;
-        while(count>0 && magnitude <= count*stepPx-hysteresis) count--;
-        // Micro assist is limited to the first cell and never overrides a full swipe.
-        if(magnitude<=4) microStepDir=0;
-        else if(microStepDir!==0 && microStepDir!==dir) microStepDir=0;
-        // Firefox touch events can report low velocity despite deliberate movement.
-        // Trigger the first cell by travel distance alone, without velocity filtering.
-        const microRange=magnitude>=6 && magnitude<(stepPx+hysteresis);
-        if(count===0 && dir!==0 && microRange){
-            count=1; microStepDir=dir;
+    const applyMovementSamples=samples=>{
+        for(const sample of samples){
+            const dx=sample.clientX-lastPointerX;
+            lastPointerX=sample.clientX;
+            totalFingerDx+=dx;
+            moveAccumulator+=dx;
+            const visualDx=Math.max(-maxTravel,Math.min(maxTravel,totalFingerDx));
+            el.style.setProperty('--stick-x',`${visualDx}px`);
+            if(!canMove()) { moveAccumulator=0; continue; }
+            // Relative path tracking: each pixel of finger travel is consumed once.
+            // Reversing direction immediately reverses the signed accumulator.
+            while(Math.abs(moveAccumulator)>=stepPx){
+                const direction=Math.sign(moveAccumulator);
+                if(!playerMove(direction)){ moveAccumulator=0; break; }
+                moveAccumulator-=direction*stepPx;
+            }
         }
-        if(microStepDir===dir && magnitude>4 && count===0) count=1;
-        const desired=dir*count;
-        const diff=desired-issuedSteps;
-        if(diff!==0){
-            const moveDir=Math.sign(diff);
-            let moved=0;
-            for(let i=0;i<Math.abs(diff);i++){ if(playerMove(moveDir)) moved++; else break; }
-            issuedSteps += moveDir*moved;
-            el.setAttribute('aria-valuenow',String(issuedSteps));
-            el.setAttribute('aria-valuetext',issuedSteps===0?'Нейтральное положение':`${Math.abs(issuedSteps)} шага ${issuedSteps<0?'влево':'вправо'}`);
-        }
+        const count=Math.round(totalFingerDx/stepPx);
+        el.setAttribute('aria-valuenow',String(count));
+        el.setAttribute('aria-valuetext',count===0?'Нейтральное положение':`${Math.abs(count)} шага ${count<0?'влево':'вправо'}`);
     };
     el.addEventListener('pointerdown',ev=>{
         if(pointerId!==null || !canMove() || (ev.pointerType==='mouse'&&ev.button!==0)) return;
         ev.preventDefault();
-        pointerId=ev.pointerId; startX=ev.clientX; issuedSteps=0; microStepDir=0;
-        
+        pointerId=ev.pointerId; lastPointerX=ev.clientX; totalFingerDx=0; moveAccumulator=0;
         const rect=el.getBoundingClientRect();
         maxTravel=Math.max(42,(rect.width-48)*.5);
         stepPx=Math.max(10,Math.min(18,rect.width*.075))/controlSettings.sensitivity;
-        maxSteps=Math.max(2,Math.min(4,Math.floor((maxTravel+stepPx*.2)/stepPx)));
         try{el.setPointerCapture(ev.pointerId);}catch(_){}
         el.classList.add('pressed');
-        moveTo(ev.clientX);
     },{passive:false});
     el.addEventListener('pointermove',ev=>{
         if(pointerId!==ev.pointerId) return;
         ev.preventDefault();
-        moveTo(ev.clientX);
+        const samples=typeof ev.getCoalescedEvents==='function' ? ev.getCoalescedEvents() : null;
+        applyMovementSamples(samples&&samples.length?samples:[ev]);
     },{passive:false});
     const end=ev=>{
         if(pointerId===null || (ev.pointerId!==undefined&&ev.pointerId!==pointerId)) return;
