@@ -5945,7 +5945,7 @@ function bindMobileStick() {
     let pointerId=null,startX=0,issuedSteps=0,stepPx=18,maxSteps=4,maxTravel=68,lastMoveX=0,lastMoveAt=0,microStepDir=0;
     const canMove=()=>!paused&&!isGameOver&&!lineClearAnim;
     const reset=()=>{
-        pointerId=null; issuedSteps=0;
+        pointerId=null; issuedSteps=0; microStepDir=0;
         el.style.setProperty('--stick-x','0px');
         el.setAttribute('aria-valuenow','0');
         el.setAttribute('aria-valuetext','Нейтральное положение');
