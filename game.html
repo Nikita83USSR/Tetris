@@ -6097,7 +6097,7 @@ function bindOneFingerGestures() {
     hitArea.addEventListener('pointerup',finish,{passive:false});
     hitArea.addEventListener('pointercancel',finish,{passive:false});
     hitArea.addEventListener('lostpointercapture',()=>{if(pointerId!==null)reset();});
-    pad.addEventListener('contextmenu',ev=>ev.preventDefault());
+    hitArea.addEventListener('contextmenu',ev=>ev.preventDefault());
     window.addEventListener('blur',reset);
     window.addEventListener('resize',syncOneFingerGestureSurface,{passive:true});
     window.visualViewport?.addEventListener('resize',syncOneFingerGestureSurface,{passive:true});
