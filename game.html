@@ -5966,12 +5966,12 @@ function bindOneFingerGestures() {
                 softDropActive=true;softDropHeld=true;softDropTimer=0;playerDrop(true);
                 status.textContent='МЯГКОЕ ПАДЕНИЕ';
             }
-            if(dy>=104&&!warningShown&&!hardDropped){
+            if(dy>=44&&!warningShown&&!hardDropped){
                 warningShown=true;pad.classList.add('warning');
                 status.textContent='ВНИМАНИЕ · ПРОДОЛЖИ ДЛЯ БРОСКА';
                 haptic(10);
             }
-            if(dy>=150&&performance.now()-startedAt>=140&&!hardDropped){
+            if(dy>=76&&performance.now()-startedAt>=160&&!hardDropped){
                 hardDropped=true;softDropHeld=false;softDropActive=false;
                 playerHardDrop();status.textContent='БРОСОК';
             }
