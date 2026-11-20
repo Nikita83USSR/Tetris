@@ -5961,6 +5961,66 @@ function bindFloatingJoystick() {
 }
 
 // Relative analog slider: one cell per deliberate finger travel step; stationary holds never auto-repeat.
+// Optional horizontal-touch diagnostics. Enabled only with ?touchdiag=1; no network traffic.
+const touchDiagnostics = (() => {
+    const enabled = new URLSearchParams(location.search).get('touchdiag') === '1';
+    const storageKey = 'cyberTetrisHorizontalTouchDiagnosticsV1';
+    let entries = [];
+    if (enabled) {
+        try {
+            const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
+            if (Array.isArray(saved)) entries = saved.slice(-1200);
+        } catch (_) {}
+    }
+    const record = (type, fields = []) => {
+        if (!enabled) return;
+        entries.push([performance.now(), type, ...fields]);
+        if (entries.length > 1200) entries.splice(0, entries.length - 1200);
+    };
+    const flush = () => {
+        if (!enabled) return;
+        try { localStorage.setItem(storageKey, JSON.stringify(entries)); } catch (_) {}
+    };
+    const exportText = () => JSON.stringify({
+        version: 1,
+        userAgent: navigator.userAgent,
+        platform: navigator.platform,
+        viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
+        entries
+    });
+    if (enabled) {
+        window.__cyberTetrisTouchDiagnostics = {
+            enabled: true,
+            exportText,
+            clear() { entries = []; try { localStorage.removeItem(storageKey); } catch (_) {} },
+            count() { return entries.length; }
+        };
+        const copyButton = document.createElement('button');
+        copyButton.type = 'button';
+        copyButton.textContent = 'COPY TOUCH LOG';
+        Object.assign(copyButton.style, {
+            position: 'fixed', top: '8px', right: '8px', zIndex: '99999',
+            padding: '8px 10px', border: '1px solid #55dff5', borderRadius: '7px',
+            background: 'rgba(3,12,27,.94)', color: '#bdf8ff',
+            font: '700 10px system-ui', letterSpacing: '.06em'
+        });
+        copyButton.addEventListener('click', async () => {
+            flush();
+            const data = exportText();
+            try {
+                await navigator.clipboard.writeText(data);
+                copyButton.textContent = 'LOG COPIED';
+            } catch (_) {
+                window.prompt('Скопируй диагностический лог:', data);
+            }
+        });
+        document.body.appendChild(copyButton);
+        record('session-start', [location.href, navigator.userAgent, innerWidth, innerHeight, devicePixelRatio]);
+    }
+    return { enabled, record, flush };
+})();
+
+// Relative analog slider: one cell per deliberate finger travel step; stationary holds never auto-repeat.
 function bindMobileStick() {
     const el=document.getElementById('mc-stick');
     const thumb=document.getElementById('mc-stick-thumb');
@@ -5971,7 +6031,11 @@ function bindMobileStick() {
     const consumeAccumulator=()=>{
         while(Math.abs(moveAccumulator)>=stepPx){
             const direction=Math.sign(moveAccumulator);
-            if(!playerMove(direction)){ moveAccumulator=0; reversalBuffer=0; break; }
+            const diagnostic=touchDiagnostics.enabled;
+            const startedAt=diagnostic?performance.now():0;
+            const moved=playerMove(direction);
+            if(diagnostic) touchDiagnostics.record('move',[startedAt,performance.now(),direction,moved?1:0,moveAccumulator]);
+            if(!moved){ moveAccumulator=0; reversalBuffer=0; break; }
             moveAccumulator-=direction*stepPx;
         }
     };
@@ -6005,15 +6069,19 @@ function bindMobileStick() {
         el.setAttribute('aria-valuetext','Нейтральное положение');
         el.classList.remove('pressed');
     };
-    const applyMovementSamples=samples=>{
-        for(const sample of samples){
+    const applyMovementSamples=(samples,sourceEvent,source='pointermove')=>{
+        const diagnostic=touchDiagnostics.enabled;
+        const receivedAt=diagnostic?performance.now():0;
+        if(diagnostic) touchDiagnostics.record('batch',[source,sourceEvent?.timeStamp??null,receivedAt,samples.length,sourceEvent?.pointerType??null]);
+        for(let i=0;i<samples.length;i++){
+            const sample=samples[i];
             const dx=sample.clientX-lastPointerX;
             lastPointerX=sample.clientX;
             totalFingerDx+=dx;
             const visualDx=Math.max(-maxTravel,Math.min(maxTravel,totalFingerDx));
             el.style.setProperty('--stick-x',`${visualDx}px`);
+            if(diagnostic) touchDiagnostics.record('sample',[sample.timeStamp??null,receivedAt,sample.clientX,dx,i,samples.length,moveAccumulator,reversalBuffer]);
             if(!canMove()) { moveAccumulator=0; reversalBuffer=0; continue; }
-            // TEST: hold back only tiny opposite-direction jitter; commit real reversals quickly.
             applyDelta(dx);
         }
         const count=Math.round(totalFingerDx/stepPx);
@@ -6023,10 +6091,11 @@ function bindMobileStick() {
     el.addEventListener('pointerdown',ev=>{
         if(pointerId!==null || !canMove() || (ev.pointerType==='mouse'&&ev.button!==0)) return;
         ev.preventDefault();
-        pointerId=ev.pointerId; lastPointerX=ev.clientX; totalFingerDx=0; moveAccumulator=0;
+        pointerId=ev.pointerId; lastPointerX=ev.clientX; totalFingerDx=0; moveAccumulator=0; reversalBuffer=0;
         const rect=el.getBoundingClientRect();
         maxTravel=Math.max(42,(rect.width-48)*.5);
         stepPx=Math.max(10,Math.min(18,rect.width*.075))/controlSettings.sensitivity;
+        if(touchDiagnostics.enabled) touchDiagnostics.record('pointerdown',[ev.timeStamp,ev.pointerType,ev.clientX,stepPx,rect.width,controlSettings.sensitivity]);
         try{el.setPointerCapture(ev.pointerId);}catch(_){}
         el.classList.add('pressed');
     },{passive:false});
@@ -6034,17 +6103,24 @@ function bindMobileStick() {
         if(pointerId!==ev.pointerId) return;
         ev.preventDefault();
         const samples=typeof ev.getCoalescedEvents==='function' ? ev.getCoalescedEvents() : null;
-        applyMovementSamples(samples&&samples.length?samples:[ev]);
+        applyMovementSamples(samples&&samples.length?samples:[ev],ev,'pointermove');
     },{passive:false});
-    const end=ev=>{
+    const finish=(ev,applyFinalCoordinate)=>{
         if(pointerId===null || (ev.pointerId!==undefined&&ev.pointerId!==pointerId)) return;
         ev.preventDefault?.();
-        const id=pointerId; reset();
+        const id=pointerId;
+        if(applyFinalCoordinate && Number.isFinite(ev.clientX) && ev.clientX!==lastPointerX){
+            if(touchDiagnostics.enabled) touchDiagnostics.record('pointerup-final-coordinate',[ev.timeStamp,ev.clientX,lastPointerX,ev.clientX-lastPointerX]);
+            applyMovementSamples([ev],ev,'pointerup-final');
+        }
+        if(touchDiagnostics.enabled) touchDiagnostics.record(applyFinalCoordinate?'pointerup':'pointercancel',[ev.timeStamp??null,ev.clientX??null,lastPointerX,moveAccumulator,reversalBuffer]);
+        reset();
+        touchDiagnostics.flush();
         try{if(el.hasPointerCapture(id))el.releasePointerCapture(id);}catch(_){}
     };
-    el.addEventListener('pointerup',end,{passive:false});
-    el.addEventListener('pointercancel',end,{passive:false});
-    el.addEventListener('lostpointercapture',()=>{if(pointerId!==null)reset();});
+    el.addEventListener('pointerup',ev=>finish(ev,true),{passive:false});
+    el.addEventListener('pointercancel',ev=>finish(ev,false),{passive:false});
+    el.addEventListener('lostpointercapture',()=>{if(pointerId!==null){if(touchDiagnostics.enabled)touchDiagnostics.record('lostpointercapture',[lastPointerX]);reset();touchDiagnostics.flush();}});
     el.addEventListener('contextmenu',ev=>ev.preventDefault());
     el.addEventListener('keydown',ev=>{
         if(!canMove()) return;
@@ -6052,8 +6128,9 @@ function bindMobileStick() {
             ev.preventDefault(); playerMove(ev.key==='ArrowLeft'?-1:1);
         }
     });
-    window.addEventListener('blur',reset);
+    window.addEventListener('blur',()=>{if(pointerId!==null&&touchDiagnostics.enabled)touchDiagnostics.record('blur',[lastPointerX]);reset();touchDiagnostics.flush();});
 }
+
 bindMobileStick();
 bindFloatingJoystick();
 bindMobileBtn('mc-down',  () => {
