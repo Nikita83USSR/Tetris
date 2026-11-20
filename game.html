@@ -3671,22 +3671,15 @@ function getGhostY() {
     return gy;
 }
 
-// Static grid is rasterized once; avoid rebuilding 51 paths on every game frame.
-const gridCacheCanvas = document.createElement('canvas');
-gridCacheCanvas.width = COL * BLOCK;
-gridCacheCanvas.height = ROW * BLOCK;
-const gridCacheCtx = gridCacheCanvas.getContext('2d');
-gridCacheCtx.setTransform(BLOCK, 0, 0, BLOCK, 0, 0);
-gridCacheCtx.strokeStyle = 'rgba(40,70,120,0.2)';
-gridCacheCtx.lineWidth = 0.02;
-for (let x = 0; x <= COL; x++) {
-    gridCacheCtx.beginPath(); gridCacheCtx.moveTo(x, 0); gridCacheCtx.lineTo(x, ROW); gridCacheCtx.stroke();
-}
-for (let y = 0; y <= ROW; y++) {
-    gridCacheCtx.beginPath(); gridCacheCtx.moveTo(0, y); gridCacheCtx.lineTo(COL, y); gridCacheCtx.stroke();
-}
 function drawGrid() {
-    ctx.drawImage(gridCacheCanvas, 0, 0, COL, ROW);
+    ctx.strokeStyle = 'rgba(40,70,120,0.2)';
+    ctx.lineWidth = 0.02;
+    for (let x = 0; x <= COL; x++) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, ROW); ctx.stroke();
+    }
+    for (let y = 0; y <= ROW; y++) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(COL, y); ctx.stroke();
+    }
 }
 
 function shade(hex, pct) {
