@@ -1602,6 +1602,33 @@
         @keyframes dangerHeartbeat { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.22)} }
 
         .settings-screen { gap:11px; }
+        /* On mobile, browser chrome can reduce the visible area without resizing the game shell. */
+        @media (max-width:760px), (pointer:coarse) {
+            #settings-screen {
+                position:fixed;
+                inset:0;
+                width:100%;
+                height:100vh;
+                height:100dvh;
+                max-height:100dvh;
+                box-sizing:border-box;
+                padding:max(env(safe-area-inset-top),12px) 12px max(env(safe-area-inset-bottom),12px);
+                overflow-x:hidden;
+                overflow-y:auto;
+                overscroll-behavior:contain;
+                -webkit-overflow-scrolling:touch;
+                justify-content:flex-start;
+                scroll-padding-bottom:calc(64px + env(safe-area-inset-bottom));
+            }
+            #settings-back-btn {
+                position:sticky;
+                bottom:0;
+                z-index:4;
+                flex:0 0 auto;
+                margin-top:auto;
+                box-shadow:0 -10px 24px rgba(2,7,19,.72),0 0 18px rgba(255,125,62,.16);
+            }
+        }
         body.settings-active #mobile-controls { visibility:hidden !important; pointer-events:none !important; }
         .settings-card { width:min(100%,440px); padding:12px 14px; border-radius:13px; border:1px solid rgba(88,210,255,.27); background:linear-gradient(150deg,rgba(20,39,70,.78),rgba(4,10,26,.91)); box-shadow:inset 0 1px 0 rgba(255,255,255,.11),0 8px 18px rgba(0,0,0,.25); }
         .settings-title { display:flex; align-items:center; justify-content:space-between; gap:10px; color:#c7f4ff; font-size:.61rem; font-weight:950; letter-spacing:.13em; }
@@ -1870,7 +1897,7 @@
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
-<div id="build-version-badge" aria-label="Тестовая сборка версии 0.7">TEST v0.7</div>
+<div id="build-version-badge" aria-label="Тестовая сборка версии 0.8">TEST v0.8</div>
 
 <div id="game-shell">
     <div id="game-container">
