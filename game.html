@@ -2055,10 +2055,9 @@ const isLowPowerDevice = isMobile && (
     (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
     (navigator.deviceMemory && navigator.deviceMemory <= 4)
 );
-const mobileBgDprCap = isLowPowerDevice ? 1.0 : 1.2;
-const mobileGameDprCap = isLowPowerDevice ? 1.25 : 1.4;
-// Mobile background is intentionally independent from the 60fps game/input loop.
-const BACKGROUND_FRAME_INTERVAL = isMobile ? (1000 / 30) : 0;
+const mobileBgDprCap = isLowPowerDevice ? 1.2 : 1.4;
+const mobileGameDprCap = isLowPowerDevice ? 1.35 : 1.55;
+const BACKGROUND_FRAME_INTERVAL = isMobile ? (isLowPowerDevice ? 1000 / 36 : 1000 / 45) : 0;
 let lastBackgroundPaint = -Infinity;
 
 // ===================== BACKGROUND (3D GRID + PARTICLES) =====================
