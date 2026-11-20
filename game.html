@@ -1897,7 +1897,7 @@
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
-<div id="build-version-badge" aria-label="Тестовая сборка версии 0.8">TEST v0.8</div>
+<div id="build-version-badge" aria-label="Тестовая сборка версии 0.9">TEST v0.9</div>
 
 <div id="game-shell">
     <div id="game-container">
@@ -5276,6 +5276,7 @@ function closeMetaScreen() {
     updateTopBarContext();
 }
 let settingsReturnScreen = null, settingsResumeActiveGame = false;
+let settingsOriginalParent = null, settingsOriginalNextSibling = null, settingsMovedToViewport = false;
 function openSettings() {
     if (!document.getElementById('settings-screen').classList.contains('hidden')) return;
     const screenIds=['start-screen','pause-screen','game-over-screen','records-screen','challenges-screen'];
@@ -5284,7 +5285,16 @@ function openSettings() {
     if (settingsResumeActiveGame) setPaused(true);
     if (settingsReturnScreen) document.getElementById(settingsReturnScreen).classList.add('hidden');
     document.getElementById('pause-screen').classList.add('hidden');
-    document.getElementById('settings-screen').classList.remove('hidden');
+    const settingsScreen=document.getElementById('settings-screen');
+    // backdrop-filter on #game-container creates a fixed-position containing block.
+    // Portal the mobile settings overlay to body so fixed/inset use the real viewport.
+    settingsMovedToViewport=window.matchMedia('(max-width: 760px), (pointer: coarse)').matches;
+    if(settingsMovedToViewport){
+        settingsOriginalParent=settingsScreen.parentNode;
+        settingsOriginalNextSibling=settingsScreen.nextSibling;
+        document.body.appendChild(settingsScreen);
+    }
+    settingsScreen.classList.remove('hidden');
     document.body.classList.add('settings-active');
     updateControlSettingsUI();
     updateTopBarContext();
@@ -5294,6 +5304,16 @@ function closeSettings() {
     if (screen.classList.contains('hidden')) return;
     screen.classList.add('hidden');
     document.body.classList.remove('settings-active');
+    if(settingsMovedToViewport && settingsOriginalParent){
+        if(settingsOriginalNextSibling && settingsOriginalNextSibling.parentNode===settingsOriginalParent){
+            settingsOriginalParent.insertBefore(screen,settingsOriginalNextSibling);
+        } else {
+            settingsOriginalParent.appendChild(screen);
+        }
+    }
+    settingsOriginalParent=null;
+    settingsOriginalNextSibling=null;
+    settingsMovedToViewport=false;
     if (settingsReturnScreen) document.getElementById(settingsReturnScreen).classList.remove('hidden');
     if (settingsResumeActiveGame) setPaused(false);
     else updateTopBarContext();
