@@ -3577,8 +3577,6 @@ function createMatrix(w, h) {
     return m;
 }
 
-// Keep particle-heavy effects bounded on phones to prevent transient frame spikes.
-const PARTICLE_CAP = isMobile ? 420 : 760;
 // ===================== PARTICLES =====================
 function createExplosion(x, y, colorIdx) {
     const col = COLORS[colorIdx] || '#fff';
@@ -3592,7 +3590,7 @@ function createExplosion(x, y, colorIdx) {
             size: 0.2 + Math.random() * 0.4
         });
     }
-    if (particles.length > PARTICLE_CAP) particles.splice(0, particles.length - PARTICLE_CAP);
+    if (particles.length > 520) particles.splice(0, particles.length - 520);
 }
 
 function createLineShards(rowY) {
@@ -3634,7 +3632,7 @@ function createLineShards(rowY) {
             });
         }
     }
-    if (particles.length > PARTICLE_CAP) particles.splice(0, particles.length - PARTICLE_CAP);
+    if (particles.length > 760) particles.splice(0, particles.length - 760);
 }
 
 function playRowClearImpact(rowIndex, totalRows) {
@@ -3660,7 +3658,6 @@ function createLandingBurst(piece, pos) {
             });
         }
     }));
-    if (particles.length > PARTICLE_CAP) particles.splice(0, particles.length - PARTICLE_CAP);
     screenFlash = Math.max(screenFlash, 0.12);
 }
 
@@ -3786,15 +3783,14 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
         sprite = buildBlockSprite(value, frame);
         if (sprites) sprites[frame] = sprite;
     }
-    const previousAlpha = context.globalAlpha;
-    context.globalAlpha = previousAlpha * alpha;
+    context.save();
+    context.globalAlpha *= alpha;
     const margin = BLOCK_SPRITE_MARGIN / BLOCK_SPRITE_INNER;
     context.drawImage(sprite, x - margin, y - margin, 1 + margin * 2, 1 + margin * 2);
-    context.globalAlpha = previousAlpha;
+    context.restore();
 }
 function drawMatrix(m, off) {
-    for (let y = 0; y < m.length; y++) {
-        const row = m[y];
+    m.forEach((row, y) => {
         let drawY = y + off.y;
         let alpha = 1;
 
@@ -3806,9 +3802,8 @@ function drawMatrix(m, off) {
             drawY = y - 1 + ease + off.y;
         }
 
-        for (let x = 0; x < row.length; x++) {
-            const v = row[x];
-            if (!v) continue;
+        row.forEach((v, x) => {
+            if (!v) return;
             if (lineClearAnim?.phase === 'disintegrate' && y === lineClearAnim.rowY) {
                 const t = Math.min(1, lineClearAnim.phaseElapsed / lineClearAnim.phaseDuration);
                 const stagger = x * 0.012;
@@ -3818,17 +3813,25 @@ function drawMatrix(m, off) {
                 alpha = 1;
             }
             if (alpha > 0.025) drawBlock(x + off.x, drawY, v, ctx, alpha);
-        }
-    }
+        });
+    });
 }
 function drawPiece(piece, pos, alpha = 1) {
-    for (let y = 0; y < piece.length; y++) {
-        const row = piece[y];
-        for (let x = 0; x < row.length; x++) {
-            const v = row[x];
-            if (v) drawBlock(x + pos.x, y + pos.y, v, ctx, alpha);
-        }
-    }
+    piece.forEach((row, y) => row.forEach((v, x) => {
+        if (v) drawBlock(x + pos.x, y + pos.y, v, ctx, alpha);
+    }));
+}
+let ghostSprite = null;
+function buildGhostSprite() {
+    const sprite = document.createElement('canvas'); sprite.width = sprite.height = 96;
+    const c = sprite.getContext('2d'); c.setTransform(80, 0, 0, 80, 8, 8);
+    const g = c.createLinearGradient(0, 0, 0, 1);
+    g.addColorStop(0, 'rgba(110,248,255,.34)');
+    g.addColorStop(1, 'rgba(0,169,255,.055)');
+    roundedPath(c, .09, .09, .82, .82, .09); c.fillStyle = g; c.fill();
+    c.strokeStyle = 'rgba(123,250,255,.78)'; c.lineWidth = .045;
+    c.shadowBlur = 10; c.shadowColor = '#00eaff'; c.stroke();
+    return sprite;
 }
 function drawGhost(piece, pos) {
     if (!ghostSprite) ghostSprite = buildGhostSprite();
