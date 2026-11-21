@@ -4503,11 +4503,8 @@ function draw() {
         // Rare, softly eased glow swells with randomized long rests between them.
         const neonPulse = getNeonPulse(currentFrameTime);
         if (isMobile) {
-            // Mobile glow stays constant: avoid any brightness breathing that can read as
-            // tile flicker on OLED/high-refresh displays. Desktop keeps its pulse below.
-            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, .8, ctx, .6);
-            else drawCachedMatrixNeonAura(matrix, .8, .6);
-            if (player.piece) drawPieceNeonAura(player.piece, player.pos, .8, 1, .6);
+            // Draw solid tiles first. The mobile aura is composited as the final tile
+            // layer below, otherwise opaque tile fills hide the glow completely.
             drawMatrix(matrix, {x:0, y:0});
         } else {
             // Draw desktop tiles normally; the cached aura is composited as the final light layer below.
@@ -4533,6 +4530,13 @@ function draw() {
 
         // Desktop aura must be the very last tile layer: sprite margins and the final
         // active-piece redraw otherwise hide the soft light around the cells.
+        if (isMobile) {
+            // Constant, subdued mobile glow, composited after every solid tile pass.
+            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, .8, ctx, .6);
+            else drawCachedMatrixNeonAura(matrix, .8, .6);
+            if (player.piece) drawPieceNeonAura(player.piece, player.pos, .8, 1, .6);
+        }
+
         if (!isMobile) {
             // Desktop pulse is deliberately stronger than mobile: a slow, visible
             // breathing of the halo, while keeping the settled glow present.
