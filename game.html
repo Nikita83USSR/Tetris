@@ -3591,7 +3591,7 @@ function drawNeonAuraCell(context, x, y, color, alpha = 1) {
     context.restore();
 }
 
-function drawMatrixNeonAura(m, off) {
+function drawMatrixNeonAura(m, off, pulse = 1) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     m.forEach((row, y) => {
@@ -3609,17 +3609,17 @@ function drawMatrixNeonAura(m, off) {
                 const local = Math.max(0, Math.min(1, (t - stagger) / (1 - stagger)));
                 alpha = 1 - Math.pow(local, 1.35);
             } else alpha = 1;
-            if (alpha > .025) drawNeonAuraCell(ctx, x + off.x, drawY, COLORS[v], alpha);
+            if (alpha > .025) drawNeonAuraCell(ctx, x + off.x, drawY, COLORS[v], alpha * pulse);
         });
     });
     ctx.restore();
 }
 
-function drawPieceNeonAura(piece, pos, alpha = 1) {
+function drawPieceNeonAura(piece, pos, alpha = 1, pulse = 1) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     piece.forEach((row, y) => row.forEach((v, x) => {
-        if (v) drawNeonAuraCell(ctx, x + pos.x, y + pos.y, COLORS[v], alpha);
+        if (v) drawNeonAuraCell(ctx, x + pos.x, y + pos.y, COLORS[v], alpha * pulse);
     }));
     ctx.restore();
 }
@@ -4457,8 +4457,11 @@ function draw() {
     } else {
         // Render all colored light fields first so neighboring halos blend together
         // instead of being covered by later tiles in the draw order.
-        drawMatrixNeonAura(matrix, {x:0, y:0});
-        if (player.piece) drawPieceNeonAura(player.piece, player.pos);
+        // A very slow, shallow breathing cycle keeps the neon alive without flashing.
+        // Respect the operating system's reduced-motion preference.
+        const neonPulse = reducedMotion ? 1 : 1 + Math.sin(currentFrameTime * (Math.PI * 2 / 7600)) * 0.055;
+        drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse);
+        if (player.piece) drawPieceNeonAura(player.piece, player.pos, 1, neonPulse);
         drawMatrix(matrix, {x:0, y:0});
         if (lineClearAnim) drawLineClearEffect();
 
