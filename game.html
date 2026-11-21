@@ -3560,6 +3560,26 @@ function buildBlockSprite(value, frame) {
     return sprite;
 }
 
+// Per-session randomized glow timing: long quiet intervals, never a regular flash.
+let neonPulseStart = 0;
+let neonPulseDuration = 0;
+let neonPulseAmplitude = 0;
+let neonPulseNextAt = 0;
+function getNeonPulse(now) {
+    if (reducedMotion) return 1;
+    if (!neonPulseNextAt) neonPulseNextAt = now + 4500 + Math.random() * 10500;
+    if (now >= neonPulseNextAt) {
+        neonPulseStart = now;
+        neonPulseDuration = 2800 + Math.random() * 2600;
+        neonPulseAmplitude = .042 + Math.random() * .025;
+        neonPulseNextAt = now + neonPulseDuration + 11000 + Math.random() * 17000;
+    }
+    if (!neonPulseStart || now < neonPulseStart) return 1;
+    const progress = Math.min(1, (now - neonPulseStart) / neonPulseDuration);
+    const envelope = Math.pow(Math.sin(Math.PI * progress), 2);
+    return 1 + neonPulseAmplitude * envelope;
+}
+
 function drawNeonAuraCell(context, x, y, color, alpha = 1) {
     // A broad, low-opacity radial field leaves the tile itself crisp.
     // "lighter" compositing below makes neighboring fields merge naturally.
@@ -4480,18 +4500,28 @@ function draw() {
     if (gameOverAnim) {
         drawGameOverScene();
     } else {
-        // Render all colored light fields first so neighboring halos blend together
-        // instead of being covered by later tiles in the draw order.
-        // A very slow, shallow breathing cycle keeps the neon alive without flashing.
-        // Respect the operating system's reduced-motion preference.
-        const neonPulse = reducedMotion ? 1 : 1 + Math.sin(currentFrameTime * (Math.PI * 2 / 7600)) * 0.055;
-        if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse);
-        else drawCachedMatrixNeonAura(matrix, neonPulse);
-        if (player.piece) drawPieceNeonAura(player.piece, player.pos, 1, neonPulse);
-        drawMatrix(matrix, {x:0, y:0});
+        // Rare, softly eased glow swells with randomized long rests between them.
+        const neonPulse = getNeonPulse(currentFrameTime);
+        if (isMobile) {
+            // Preserve the mobile layering that already displays the halo clearly.
+            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse);
+            else drawCachedMatrixNeonAura(matrix, neonPulse);
+            if (player.piece) drawPieceNeonAura(player.piece, player.pos, 1, neonPulse);
+            drawMatrix(matrix, {x:0, y:0});
+        } else {
+            // Desktop sprite tiles can visually mask a glow drawn underneath them.
+            // Composite a restrained halo pass over the finished tiles instead.
+            drawMatrix(matrix, {x:0, y:0});
+            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse * .46);
+            else drawCachedMatrixNeonAura(matrix, neonPulse * .46);
+        }
         if (lineClearAnim) drawLineClearEffect();
 
-        if (player.piece) drawGhost(player.piece, {x: player.pos.x, y: getGhostY()});
+        if (player.piece) {
+            drawGhost(player.piece, {x: player.pos.x, y: getGhostY()});
+            drawPiece(player.piece, player.pos);
+            if (!isMobile) drawPieceNeonAura(player.piece, player.pos, .46, neonPulse);
+        }
 
         if (player.trail?.length && player.piece) {
             for (let i = player.trail.length - 1; i >= 0; i--) {
