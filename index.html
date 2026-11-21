@@ -130,7 +130,7 @@
       document.getElementById('copy-log-btn').addEventListener('click',async()=>{const log=debugLines.join('\n');const btn=document.getElementById('copy-log-btn');try{await navigator.clipboard.writeText(log);btn.textContent='ЛОГ СКОПИРОВАН';}catch(_){const area=document.createElement('textarea');area.value=log;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();try{document.execCommand('copy');btn.textContent='ЛОГ СКОПИРОВАН';}catch(__){btn.textContent='НЕ УДАЛОСЬ СКОПИРОВАТЬ';}area.remove();}});
       document.getElementById('retry-btn').addEventListener('click',()=>{
         document.body.classList.remove('load-failed','game-ready');ready=false;frameLoaded=false;progress=7;setProgress(7,'Повторно загружаем игровые ресурсы…');
-        const url=new URL('./game.html',location.href);url.searchParams.set('v','15.1.2-no-atmosphere');url.searchParams.set('reload',Date.now());frame.src=url.toString();
+        const url=new URL('./game.html',location.href);url.searchParams.set('v','15.1.3-perf-debug');url.searchParams.set('reload',Date.now());frame.src=url.toString();
         slowTimer=window.setTimeout(()=>{if(!ready)document.body.classList.add('load-failed');},22000);
       });
     })();
