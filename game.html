@@ -4533,9 +4533,12 @@ function draw() {
         // Desktop aura must be the very last tile layer: sprite margins and the final
         // active-piece redraw otherwise hide the soft light around the cells.
         if (!isMobile) {
-            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse * .9);
-            else drawCachedMatrixNeonAura(matrix, neonPulse * .9);
-            if (player.piece) drawPieceNeonAura(player.piece, player.pos, .9, neonPulse);
+            // Desktop pulse is deliberately stronger than mobile: a slow, visible
+            // breathing of the halo, while keeping the settled glow present.
+            const desktopNeonAlpha = Math.min(1, .72 + (neonPulse - 1) * 4.2);
+            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, desktopNeonAlpha);
+            else drawCachedMatrixNeonAura(matrix, desktopNeonAlpha);
+            if (player.piece) drawPieceNeonAura(player.piece, player.pos, desktopNeonAlpha, 1);
         }
     }
 
