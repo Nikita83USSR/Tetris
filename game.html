@@ -2877,7 +2877,7 @@ function wireMusicAudio(audio){
         // compressor are connected only for the short Overdrive effect.
         src.connect(gain);
         gain.connect(musicGain||masterGain);
-        const nodes={src,filter,comp,gain,overdrive:false};
+        const nodes={src,filter,comp,gain,overdrive:false,overdriveWired:false};
         musicGraphNodes.set(audio,nodes);
         return nodes;
     }catch(_){return null;}
@@ -3450,8 +3450,11 @@ function triggerOverdriveAudio(){
  if(!nodes.overdrive){
   try{
    nodes.src.disconnect(gain);
-   filter.connect(comp);
-   comp.connect(gain);
+   if(!nodes.overdriveWired){
+    filter.connect(comp);
+    comp.connect(gain);
+    nodes.overdriveWired=true;
+   }
    nodes.src.connect(filter);
    nodes.overdrive=true;
   }catch(_){}
