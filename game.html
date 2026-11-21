@@ -2752,7 +2752,9 @@ let overdriveFilter=null, overdriveComp=null, overdriveActiveUntil=0;
 const MUSIC_BASE='./assets/audio/music/';
 function discoverMusicFiles(){const found=[];return Promise.all(Array.from({length:40},(_,i)=>i+1).map(async n=>{try{const r=await fetch(MUSIC_BASE+n+'.mp3',{method:'HEAD',cache:'no-store'});if(r.ok)found.push(n);}catch(_){}})).then(()=>found.sort((a,b)=>a-b));}
 function shuffleMusicBag(){musicBag=musicFiles.slice();for(let i=musicBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[musicBag[i],musicBag[j]]=[musicBag[j],musicBag[i]];}}
-function newMusicAudio(n){const a=new Audio(MUSIC_BASE+n+'.mp3');a.preload='auto';a.volume=muted?0:.62;return a;}
+let musicGraphNodes=new WeakMap();
+function wireMusicAudio(audio){if(musicGraphNodes.has(audio)||!ensureAudio())return musicGraphNodes.get(audio);try{const src=audioCtx.createMediaElementSource(audio),filter=audioCtx.createBiquadFilter(),comp=audioCtx.createDynamicsCompressor(),gain=audioCtx.createGain();filter.type='lowpass';filter.frequency.value=19000;filter.Q.value=.7;comp.threshold.value=-12;comp.ratio.value=2;gain.gain.value=.66;src.connect(filter);filter.connect(comp);comp.connect(gain);gain.connect(masterGain);const nodes={filter,comp,gain};musicGraphNodes.set(audio,nodes);return nodes;}catch(_){return null;}}
+function newMusicAudio(n){const a=new Audio(MUSIC_BASE+n+'.mp3');a.preload='auto';a.volume=1;return a;}
 function prepareNextMusic(){if(!musicFiles.length)return;if(!musicBag.length)shuffleMusicBag();musicNextIndex=musicBag.pop();musicNextAudio=newMusicAudio(musicNextIndex);}
 function startNumberedMusic(){discoverMusicFiles().then(files=>{musicFiles=files;if(!files.length||!musicPlaying||muted)return;shuffleMusicBag();prepareNextMusic();playNumberedNext();}).catch(()=>{});}
 function playNumberedNext(){if(!musicPlaying||muted||!musicNextAudio)return;const prev=musicCurrentAudio;musicCurrentAudio=musicNextAudio;currentMusicTrackIndex=musicNextIndex;musicNextAudio=null;musicNextIndex=-1;musicCurrentAudio.volume=0;musicCurrentAudio.play().then(()=>{const t=performance.now(),fade=setInterval(()=>{const p=Math.min(1,(performance.now()-t)/650);if(musicCurrentAudio)musicCurrentAudio.volume=(muted?0:.62)*p;if(p>=1)clearInterval(fade);},25);}).catch(()=>{});if(prev){prev.pause();prev.src='';}prepareNextMusic();if(musicCurrentAudio)musicCurrentAudio.onended=playNumberedNext;}
@@ -3149,12 +3151,13 @@ function fadeOverdriveAudio(fade=.16) {
     overdriveGain.gain.setTargetAtTime(.0001,now,Math.max(.025,fade/3));
 }
 function triggerOverdriveAudio(){
- if(!musicPlaying||muted||!musicCurrentAudio||!ensureAudio())return;
- const audio=musicCurrentAudio;const now=performance.now();overdriveActiveUntil=now+6400;
- try{if(!audioCtx||!overdriveGain)return;overdriveGain.gain.cancelScheduledValues(audioCtx.currentTime);overdriveGain.gain.setValueAtTime(.0001,audioCtx.currentTime);overdriveGain.gain.linearRampToValueAtTime(.20,audioCtx.currentTime+.22);overdriveGain.gain.setTargetAtTime(.0001,audioCtx.currentTime+6.1,.12);}catch(_){}
+ if(!musicPlaying||muted||!musicCurrentAudio)return;
+ const nodes=wireMusicAudio(musicCurrentAudio);if(!nodes)return;
+ const ctx=audioCtx,now=ctx.currentTime,filter=nodes.filter,comp=nodes.comp,gain=nodes.gain;
+ overdriveActiveUntil=performance.now()+6400;
+ filter.frequency.cancelScheduledValues(now);filter.frequency.setValueAtTime(19000,now);filter.frequency.exponentialRampToValueAtTime(1250,now+.35);filter.frequency.setTargetAtTime(5200,now+5.65,.32);filter.frequency.setTargetAtTime(19000,now+6.4,.25);
+ comp.threshold.setValueAtTime(-26,now);comp.ratio.setValueAtTime(5,now);gain.gain.cancelScheduledValues(now);gain.gain.setValueAtTime(.66,now);gain.gain.linearRampToValueAtTime(.88,now+.28);gain.gain.setTargetAtTime(.66,now+5.9,.22);
 }
-function fadeOverdriveAudio(){if(audioCtx&&overdriveGain){overdriveGain.gain.cancelScheduledValues(audioCtx.currentTime);overdriveGain.gain.setTargetAtTime(.0001,audioCtx.currentTime,.04);}}
-
 function playMusicSting(){}
 function startMusic(resume=false){if(muted)return;stopMusic();musicPlaying=true;musicResumeOffset=0;startNumberedMusic();}
 function pauseMusic(){musicPlaying=false;fadeOverdriveAudio();stopNumberedMusic();}
