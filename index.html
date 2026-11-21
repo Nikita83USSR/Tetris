@@ -66,14 +66,14 @@
     <button class="retry" id="retry-btn" type="button">ПОВТОРИТЬ ЗАГРУЗКУ</button>
     <div class="loader-actions"><button class="loader-action" id="refresh-page-btn" type="button">ОБНОВИТЬ ИГРУ</button></div>
   </main>
-  <pre id="boot-debug" style="display:block!important;position:fixed!important;left:8px!important;right:8px!important;top:48px!important;bottom:auto!important;max-height:34vh!important;overflow:auto!important;z-index:2147483647!important;margin:0!important;padding:10px!important;background:rgba(0,5,15,.96)!important;color:#aeefff!important;border:1px solid #38cdb0!important;border-radius:8px!important;font:11px/1.45 monospace!important;white-space:pre-wrap!important;pointer-events:auto!important">CYBER TETRIS DIAGNOSTICS\nHTML PANEL VISIBLE\nWaiting for JavaScript…</pre>
+  <pre id="boot-debug" style="display:none!important;position:fixed!important;left:8px!important;right:8px!important;top:48px!important;bottom:auto!important;max-height:34vh!important;overflow:auto!important;z-index:2147483647!important;margin:0!important;padding:10px!important;background:rgba(0,5,15,.96)!important;color:#aeefff!important;border:1px solid #38cdb0!important;border-radius:8px!important;font:11px/1.45 monospace!important;white-space:pre-wrap!important;pointer-events:auto!important">CYBER TETRIS DIAGNOSTICS\nHTML PANEL VISIBLE\nWaiting for JavaScript…</pre>
   <button id="copy-log-btn" type="button" style="position:fixed!important;top:8px!important;right:8px!important;z-index:2147483647!important;display:block!important;min-height:40px!important;padding:8px 12px!important;background:#07131f!important;color:#aeefff!important;border:2px solid #38cdb0!important;border-radius:7px!important;font: bold 12px monospace!important">СКОПИРОВАТЬ ВЕСЬ ЛОГ</button>
   <script>
     // Independent emergency diagnostics: runs before the game iframe and main loader.
     (() => {
       // Diagnostics are enabled by default on main; no query parameters required.
       const panel = document.getElementById('boot-debug');
-      panel.style.cssText = 'display:block!important;position:fixed!important;left:8px!important;right:8px!important;top:48px!important;bottom:auto!important;max-height:38vh!important;overflow:auto!important;z-index:2147483647!important;margin:0!important;padding:10px!important;background:rgba(0,5,15,.98)!important;color:#aeefff!important;border:2px solid #38cdb0!important;border-radius:8px!important;font:12px/1.5 monospace!important;white-space:pre-wrap!important;pointer-events:auto!important';
+      panel.style.cssText = 'display:none!important;position:fixed!important;left:8px!important;right:8px!important;top:48px!important;bottom:auto!important;max-height:38vh!important;overflow:auto!important;z-index:2147483647!important;margin:0!important;padding:10px!important;background:rgba(0,5,15,.98)!important;color:#aeefff!important;border:2px solid #38cdb0!important;border-radius:8px!important;font:12px/1.5 monospace!important;white-space:pre-wrap!important;pointer-events:auto!important';
       const lines = window.__bootDiagLines = ['CYBER TETRIS DIAGNOSTICS — ALWAYS ON', 'URL: ' + location.href, 'Document: ' + document.readyState];
       const render = () => { panel.textContent = lines.slice(-100).join('\\n'); };
       window.__bootDiag = message => { lines.push(new Date().toLocaleTimeString() + ' ' + message); if(lines.length>100) lines.shift(); render(); };
@@ -125,7 +125,7 @@
       const stage=document.getElementById('loading-stage');
       const meter=document.querySelector('.meter');
       let progress=7, frameLoaded=false, ready=false, slowTimer=0;
-      const debugBox=document.getElementById('boot-debug');const debugLines=window.__bootDiagLines||(window.__bootDiagLines=[]);const dbg=(msg)=>{debugLines.push(new Date().toLocaleTimeString()+' '+msg);if(debugLines.length>100)debugLines.shift();debugBox.textContent=debugLines.slice(-100).join('\n');};const perfMode=new URLSearchParams(location.search).get('perf')==='1';if(perfMode){document.body.classList.add('debug-mode');document.getElementById('boot-debug').style.display='block';const gameUrl=new URL(frame.src,location.href);gameUrl.searchParams.set('perf','1');gameUrl.searchParams.set('diagReload',Date.now());frame.src=gameUrl.toString();}dbg('loader script started');
+      const debugBox=document.getElementById('boot-debug');const debugLines=window.__bootDiagLines||(window.__bootDiagLines=[]);const dbg=(msg)=>{debugLines.push(new Date().toLocaleTimeString()+' '+msg);if(debugLines.length>100)debugLines.shift();debugBox.textContent=debugLines.slice(-100).join('\n');};const perfMode=new URLSearchParams(location.search).get('perf')==='1';if(perfMode){document.body.classList.add('debug-mode');const gameUrl=new URL(frame.src,location.href);gameUrl.searchParams.set('perf','1');gameUrl.searchParams.set('diagReload',Date.now());frame.src=gameUrl.toString();}dbg('loader script started');
       const setProgress=(value,label)=>{
         progress=Math.max(progress,Math.min(99,Math.round(value)));
         fill.style.width=progress+'%';percent.textContent=String(progress).padStart(2,'0')+'%';
