@@ -64,9 +64,10 @@
     <div class="loading-foot"><span id="loading-stage">ИНИЦИАЛИЗАЦИЯ</span><span id="loading-percent">07%</span></div>
     <div class="load-error" id="load-error">Не удалось загрузить игровые ресурсы. Проверьте соединение и попробуйте ещё раз.</div>
     <button class="retry" id="retry-btn" type="button">ПОВТОРИТЬ ЗАГРУЗКУ</button>
-    <div class="loader-actions"><button class="loader-action" id="refresh-page-btn" type="button">ОБНОВИТЬ ИГРУ</button><button class="loader-action" id="copy-log-btn" type="button">СКОПИРОВАТЬ ЛОГ</button></div>
+    <div class="loader-actions"><button class="loader-action" id="refresh-page-btn" type="button">ОБНОВИТЬ ИГРУ</button></div>
   </main>
   <pre id="boot-debug" style="display:block!important;position:fixed!important;left:8px!important;right:8px!important;top:48px!important;bottom:auto!important;max-height:34vh!important;overflow:auto!important;z-index:2147483647!important;margin:0!important;padding:10px!important;background:rgba(0,5,15,.96)!important;color:#aeefff!important;border:1px solid #38cdb0!important;border-radius:8px!important;font:11px/1.45 monospace!important;white-space:pre-wrap!important;pointer-events:auto!important">CYBER TETRIS DIAGNOSTICS\nHTML PANEL VISIBLE\nWaiting for JavaScript…</pre>
+  <button id="copy-log-btn" type="button" style="position:fixed!important;top:8px!important;right:8px!important;z-index:2147483647!important;display:block!important;min-height:40px!important;padding:8px 12px!important;background:#07131f!important;color:#aeefff!important;border:2px solid #38cdb0!important;border-radius:7px!important;font: bold 12px monospace!important">СКОПИРОВАТЬ ВЕСЬ ЛОГ</button>
   <script>
     // Independent emergency diagnostics: runs before the game iframe and main loader.
     (() => {
@@ -84,7 +85,16 @@
         const frame = document.getElementById('game-frame');
         window.__bootDiag('DOM READY; iframe=' + (!!frame) + (frame ? '; src=' + frame.src : ''));
         if (frame) {
-          frame.addEventListener('load', () => window.__bootDiag('IFRAME LOAD EVENT'));
+          frame.addEventListener('load', () => {
+            window.__bootDiag('IFRAME LOAD EVENT');
+            try {
+              const win=frame.contentWindow, doc=frame.contentDocument;
+              win.addEventListener('error',e=>window.__bootDiag('GAME JS ERROR: '+(e.message||'unknown')+' @ '+(e.filename||'')+':'+(e.lineno||0)));
+              win.addEventListener('unhandledrejection',e=>window.__bootDiag('GAME PROMISE REJECTION: '+String(e.reason)));
+              doc.addEventListener('error',e=>window.__bootDiag('GAME RESOURCE ERROR: '+(e.target?.src||e.target?.href||e.target?.tagName||'unknown')),true);
+              window.__bootDiag('GAME HOOKS ATTACHED; scripts='+doc.scripts.length+'; canvases='+doc.querySelectorAll('canvas').length);
+            } catch(e) { window.__bootDiag('GAME HOOK ERROR: '+String(e)); }
+          });
           frame.addEventListener('error', () => window.__bootDiag('IFRAME ERROR EVENT'));
         }
       });
@@ -92,7 +102,15 @@
         const frame = document.getElementById('game-frame');
         let state = 'not-created';
         try { state = frame ? (frame.contentDocument ? frame.contentDocument.readyState : 'cross-origin/unavailable') : state; } catch (_) { state = 'cross-origin'; }
-        window.__bootDiag('HEARTBEAT; page=' + document.readyState + '; iframe=' + state);
+        let gameState='unavailable';
+        try {
+          const w=frame.contentWindow, d=frame.contentDocument;
+          gameState='bootProgress='+String(w.__CYBER_BOOT_PROGRESS??'undefined')
+            +'; canvases='+d.querySelectorAll('canvas').length
+            +'; scripts='+d.scripts.length
+            +'; bodyText='+(d.body?.innerText||'').slice(0,100).replace(/\\s+/g,' ');
+        } catch(e) { gameState='inspect-error='+String(e); }
+        window.__bootDiag('HEARTBEAT; page=' + document.readyState + '; iframe=' + state + '; GAME '+gameState);
       }, 3000);
     })();
   </script>
@@ -164,21 +182,19 @@
       },22000);
       document.getElementById('refresh-page-btn').addEventListener('click',()=>{const url=new URL(location.href);url.searchParams.set('refresh',Date.now());location.replace(url.toString());});
       const copyButton=document.getElementById('copy-log-btn');
-      copyButton.textContent='СКОПИРОВАТЬ ВЕСЬ ЛОГ';
       copyButton.addEventListener('click',async()=>{
         const log=(window.__bootDiagLines||debugLines).join('\n');
         let copied=false;
         try { if(navigator.clipboard && window.isSecureContext){ await navigator.clipboard.writeText(log); copied=true; } } catch(_){}
         if(!copied){
-          const area=document.createElement('textarea');
-          area.value=log; area.setAttribute('readonly','');
-          area.style.cssText='position:fixed;left:8px;top:8px;width:calc(100% - 16px);height:40vh;opacity:.01;z-index:2147483647;font-size:16px';
+          const area=document.createElement('textarea'); area.value=log; area.setAttribute('readonly','');
+          area.style.cssText='position:fixed;left:8px;top:55px;width:calc(100% - 16px);height:40vh;opacity:.02;z-index:2147483647;font-size:16px';
           document.body.appendChild(area); area.focus(); area.select(); area.setSelectionRange(0,area.value.length);
           try { copied=document.execCommand('copy'); } catch(_){}
           area.remove();
         }
-        copyButton.textContent=copied?'ВЕСЬ ЛОГ СКОПИРОВАН':'НЕ УДАЛОСЬ СКОПИРОВАТЬ';
-        window.setTimeout(()=>{copyButton.textContent='СКОПИРОВАТЬ ВЕСЬ ЛОГ';},2500);
+        copyButton.textContent=copied?'ВЕСЬ ЛОГ СКОПИРОВАН':'КОПИРОВАНИЕ НЕ ПОДДЕРЖАНО';
+        window.setTimeout(()=>{copyButton.textContent='СКОПИРОВАТЬ ВЕСЬ ЛОГ';},3000);
       });
       document.getElementById('retry-btn').addEventListener('click',()=>{
         document.body.classList.remove('load-failed','game-ready');ready=false;frameLoaded=false;progress=7;setProgress(7,'Повторно загружаем игровые ресурсы…');
