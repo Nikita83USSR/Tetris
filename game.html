@@ -3064,11 +3064,28 @@ function playSoftDropSound() {
     playNoiseBurst(0.035, 0.006, 'lowpass', 520);
 }
 function playFallTick() { playTone(205, 'triangle', 0.035, 0.006, 0.002, 145); }
+// Four procedural hard-drop impacts. Shuffle-like selection avoids immediate repeats.
+let lastHardDropVariant = -1;
 function playHardDropSound() {
-    playAssetSfx('harddrop', .72);
-    playTone(145, 'sawtooth', 0.22, 0.065, 0.002, 42);
-    playTone(58, 'sine', 0.25, 0.075, 0.002, 29);
-    playNoiseBurst(0.13, 0.035, 'lowpass', 850);
+    if (muted || !ensureAudio()) return;
+    const variants = [
+        // Deep rubbery body + short dusty slap.
+        { sub:[78,30,.34,.17], body:[142, 'triangle', 54,.20,.075], noise:[.145,.052,'lowpass',1050], crack:[235,92,.045,.026] },
+        // Hard metallic impact, with a tighter midrange crack.
+        { sub:[66,26,.32,.18], body:[205, 'sawtooth', 61,.18,.062], noise:[.16,.046,'bandpass',780], crack:[310,118,.052,.022] },
+        // Dense concrete thump: darker and heavier.
+        { sub:[56,24,.38,.19], body:[112, 'triangle', 39,.24,.082], noise:[.19,.061,'lowpass',620], crack:[178,72,.05,.025] },
+        // Punchy arcade slam with a brighter transient.
+        { sub:[94,34,.29,.16], body:[168, 'sawtooth', 47,.17,.066], noise:[.125,.057,'bandpass',1180], crack:[355,130,.04,.024] }
+    ];
+    let index = Math.floor(Math.random() * variants.length);
+    if (index === lastHardDropVariant) index = (index + 1 + Math.floor(Math.random() * (variants.length - 1))) % variants.length;
+    lastHardDropVariant = index;
+    const v = variants[index];
+    playTone(v.sub[0], 'sine', v.sub[2], v.sub[3], .002, v.sub[1]);
+    playTone(v.body[0], v.body[1], v.body[3], v.body[4], .002, v.body[2]);
+    playNoiseBurst(v.noise[0], v.noise[1], v.noise[2], v.noise[3]);
+    playTone(v.crack[0], 'triangle', v.crack[2], v.crack[3], .001, v.crack[1]);
 }
 function playLineClearSound(n) {
     playAssetSfx(n >= 4 ? 'tetris' : 'lineclear', n >= 4 ? .82 : .58);
