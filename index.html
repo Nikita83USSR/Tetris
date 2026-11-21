@@ -83,7 +83,9 @@
       window.addEventListener('message',event=>{
         if(event.origin!==location.origin || event.source!==frame.contentWindow) return;
         const data=event.data;
-        if(!data || data.type!=='CYBER_TETRIS_BOOT') return;
+        if(!data)return;
+        if(data.type==='CYBER_TETRIS_DEBUG'){dbg(data.message||'game debug');return;}
+        if(data.type!=='CYBER_TETRIS_BOOT')return;
         dbg('game progress '+data.progress+'% · '+data.label);
         setProgress(data.progress,data.label);
       });
