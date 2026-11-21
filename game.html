@@ -2829,7 +2829,49 @@ let musicGraphNodes=new WeakMap();
 function wireMusicAudio(audio){if(musicGraphNodes.has(audio)||!ensureAudio())return musicGraphNodes.get(audio);try{const src=audioCtx.createMediaElementSource(audio),filter=audioCtx.createBiquadFilter(),comp=audioCtx.createDynamicsCompressor(),gain=audioCtx.createGain();filter.type='lowpass';filter.frequency.value=19000;filter.Q.value=.7;comp.threshold.value=-12;comp.ratio.value=2;gain.gain.value=.82;src.connect(filter);filter.connect(comp);comp.connect(gain);gain.connect(musicGain||masterGain);const nodes={filter,comp,gain};musicGraphNodes.set(audio,nodes);return nodes;}catch(_){return null;}}
 function newMusicAudio(n){const a=new Audio(MUSIC_BASE+n+'.mp3');a.preload='auto';a.volume=1;return a;}
 function prepareNextMusic(){if(!musicFiles.length)return;if(!musicBag.length)shuffleMusicBag();musicNextIndex=musicBag.pop();musicNextAudio=newMusicAudio(musicNextIndex);musicNextAudio.load();}
-function startNumberedMusic(){discoverMusicFiles().then(files=>{musicFiles=files;if(!files.length||!musicPlaying||muted)return;shuffleMusicBag();prepareNextMusic();playNumberedNext();}).catch(()=>{});}
+function startNumberedMusic(){
+    if(!musicPlaying||muted)return;
+    // Start the first media element synchronously from the user's tap. Mobile Safari
+    // can reject play() when it is delayed until async file discovery finishes.
+    const first=newMusicAudio(1);
+    musicCurrentAudio=first;
+    currentMusicTrackIndex=1;
+    wireMusicAudio(first);
+    let advanced=false;
+    const advance=()=>{
+        if(advanced||musicCurrentAudio!==first)return;
+        advanced=true;
+        first.onended=null; first.onerror=null;
+        if(musicPlaying&&!muted){
+            if(musicNextAudio)playNumberedNext();
+            else if(musicFiles.length){shuffleMusicBag();prepareNextMusic();playNumberedNext();}
+        }
+    };
+    first.onended=advance;
+    first.onerror=()=>{
+        if(advanced)return; advanced=true;
+        first.onended=null; first.onerror=null;
+        discoverMusicFiles().then(files=>{
+            musicFiles=files.filter(n=>n!==1);
+            if(!musicPlaying||muted||!musicFiles.length)return;
+            shuffleMusicBag();prepareNextMusic();playNumberedNext();
+        }).catch(()=>{});
+    };
+    first.play().then(()=>{
+        const began=performance.now();
+        const fade=setInterval(()=>{
+            if(musicCurrentAudio!==first||!musicPlaying||muted){clearInterval(fade);return;}
+            const p=Math.min(1,(performance.now()-began)/650);
+            first.volume=(muted?0:.78)*p;
+            if(p>=1)clearInterval(fade);
+        },25);
+    }).catch(()=>{});
+    discoverMusicFiles().then(files=>{
+        musicFiles=files.filter(n=>n!==1);
+        if(!musicPlaying||muted||!musicFiles.length||advanced)return;
+        shuffleMusicBag();prepareNextMusic();
+    }).catch(()=>{});
+}
 function playNumberedNext(){
     if(!musicPlaying||muted||!musicNextAudio)return;
     const token=++musicTrackSwitchToken;
