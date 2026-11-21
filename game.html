@@ -2102,6 +2102,7 @@
 // Lightweight progress bridge for the fast first-paint splash in index.html.
 function reportBootProgress(progress, label) {
     window.__CYBER_BOOT_PROGRESS = Math.max(Number(window.__CYBER_BOOT_PROGRESS)||0, Number(progress)||0);
+    try{window.parent.postMessage({type:'CYBER_TETRIS_DEBUG',message:'game boot '+progress+'% · '+label},location.origin);}catch(_){}
     try {
         if (window.parent !== window) window.parent.postMessage({
             type: 'CYBER_TETRIS_BOOT', progress: Math.max(0, Math.min(100, Number(progress) || 0)), label: String(label || '')
@@ -2121,6 +2122,8 @@ function maybeReportBootReady() {
     }));
 }
 reportBootProgress(14, 'ЗАПУСК ИГРОВОГО ЯДРА');
+window.addEventListener('error',e=>{try{window.parent.postMessage({type:'CYBER_TETRIS_DEBUG',message:'game JS ERROR: '+(e.message||'unknown')+' @ '+(e.filename||'')+':'+(e.lineno||0)},location.origin);}catch(_){}});
+window.addEventListener('unhandledrejection',e=>{try{window.parent.postMessage({type:'CYBER_TETRIS_DEBUG',message:'game promise ERROR: '+String(e.reason)},location.origin);}catch(_){}});
 
 // ===================== DETECT MOBILE =====================
 const isMobile = (() => {
