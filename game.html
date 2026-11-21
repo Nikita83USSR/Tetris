@@ -3578,6 +3578,9 @@ function shade(hex, pct) {
     const b = Math.min(255, Math.max(0, (n & 0xff) + pct));
     return `rgb(${r},${g},${b})`;
 }
+const BLOCK_MATERIALS = COLORS.map(color => color
+    ? { top: shade(color, 20), base: color, bottom: shade(color, -18) }
+    : null);
 
 function roundedPath(context, x, y, w, h, r) {
     const rr = Math.min(r, w / 2, h / 2);
@@ -3609,10 +3612,11 @@ function buildBlockSprite(value, frame) {
 
     // Flat arcade tile. Neon bloom is rendered on the main canvas, outside this sprite,
     // so the glow can extend freely instead of being clipped by the sprite bounds.
+    const material = BLOCK_MATERIALS[value];
     const body = c.createLinearGradient(0, .08, 0, .94);
-    body.addColorStop(0, shade(color, 20));
-    body.addColorStop(.5, color);
-    body.addColorStop(1, shade(color, -18));
+    body.addColorStop(0, material.top);
+    body.addColorStop(.5, material.base);
+    body.addColorStop(1, material.bottom);
     roundedPath(c, .075, .075, .85, .85, .075);
     c.fillStyle = body;
     c.fill();
@@ -3772,16 +3776,17 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
     // Android browsers can fail to composite tiny offscreen canvases reliably.
     // Draw mobile blocks directly on the main canvas; no sprite dependency.
     const color = COLORS[value];
-    // Aura is rendered in a dedicated additive pass before all solid tiles.
+    // Aura is composited in a dedicated additive pass after solid tiles.
     // Android browsers can fail to composite tiny offscreen canvases reliably.
     // Keep mobile tiles on the main canvas, but share the same unclipped neon glow.
     if (isMobile) {
         context.save();
         context.globalAlpha *= alpha;
+        const material = BLOCK_MATERIALS[value];
         const body = context.createLinearGradient(x, y + .08, x, y + .94);
-        body.addColorStop(0, shade(color, 20));
-        body.addColorStop(.5, color);
-        body.addColorStop(1, shade(color, -18));
+        body.addColorStop(0, material.top);
+        body.addColorStop(.5, material.base);
+        body.addColorStop(1, material.bottom);
         roundedPath(context, x + .075, y + .075, .85, .85, .075);
         context.fillStyle = body;
         context.fill();
