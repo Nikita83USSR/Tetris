@@ -2122,23 +2122,6 @@
     </div>
 </div>
 
-<script>
-/* Independent iframe probe: deliberately separate from the large game script. */
-(function(){
-  function send(message){
-    try{parent.postMessage({type:'CYBER_TETRIS_DEBUG',message:'IFRAME PROBE: '+message},'*');}catch(e){}
-  }
-  send('game.html parsed; probe script executing');
-  window.addEventListener('error',function(e){
-    send('SCRIPT ERROR: '+(e.message||'unknown')+' @ '+(e.filename||'')+':'+(e.lineno||0));
-  });
-  window.addEventListener('unhandledrejection',function(e){
-    send('UNHANDLED REJECTION: '+String(e.reason));
-  });
-  document.addEventListener('DOMContentLoaded',function(){send('iframe DOMContentLoaded');});
-  window.addEventListener('load',function(){send('iframe window load');});
-})();
-</script>
 <script src="./assets/config.js"></script>
 <script>
 (() => {
@@ -2147,7 +2130,6 @@
 // Lightweight progress bridge for the fast first-paint splash in index.html.
 function reportBootProgress(progress, label) {
     window.__CYBER_BOOT_PROGRESS = Math.max(Number(window.__CYBER_BOOT_PROGRESS)||0, Number(progress)||0);
-    try{window.parent.postMessage({type:'CYBER_TETRIS_DEBUG',message:'game boot '+progress+'% · '+label},location.origin);}catch(_){}
     try {
         if (window.parent !== window) window.parent.postMessage({
             type: 'CYBER_TETRIS_BOOT', progress: Math.max(0, Math.min(100, Number(progress) || 0)), label: String(label || '')
@@ -2167,8 +2149,6 @@ function maybeReportBootReady() {
     }));
 }
 reportBootProgress(14, 'ЗАПУСК ИГРОВОГО ЯДРА');
-window.addEventListener('error',e=>{try{window.parent.postMessage({type:'CYBER_TETRIS_DEBUG',message:'game JS ERROR: '+(e.message||'unknown')+' @ '+(e.filename||'')+':'+(e.lineno||0)},location.origin);}catch(_){}});
-window.addEventListener('unhandledrejection',e=>{try{window.parent.postMessage({type:'CYBER_TETRIS_DEBUG',message:'game promise ERROR: '+String(e.reason)},location.origin);}catch(_){}});
 
 // ===================== DETECT MOBILE =====================
 const isMobile = (() => {
@@ -2189,68 +2169,6 @@ const mobileGameDprCap = isFirefoxMobile ? 1.25 : (isLowPowerDevice ? 1.35 : 1.5
 // Keep the actual game loop at the browser refresh rate; throttle only decorative scenery.
 const BACKGROUND_FRAME_INTERVAL = isMobile ? (isFirefoxMobile ? 1000 / 30 : (isLowPowerDevice ? 1000 / 36 : 1000 / 45)) : 0;
 let lastBackgroundPaint = -Infinity;
-
-// Optional local performance diagnostics: append ?perf=1 and inspect
-// window.__cyberTetrisPerf in DevTools. No UI, storage, or network activity.
-const perfDiagnosticsEnabled = new URLSearchParams(location.search).get('perf') === '1';
-const perfDiagnostics = {
-    frames: 0, frameMs: 0, frameMaxMs: 0,
-    backgroundMs: 0, backgroundMaxMs: 0,
-    drawMs: 0, drawMaxMs: 0,
-    lastReportAt: 0
-};
-function recordPerfSample(frameStart, backgroundMs = 0, drawMs = 0) {
-    if (!perfDiagnosticsEnabled) return;
-    const frameMs = Math.max(0, performance.now() - frameStart);
-    perfDiagnostics.frames++;
-    perfDiagnostics.frameMs += frameMs;
-    perfDiagnostics.frameMaxMs = Math.max(perfDiagnostics.frameMaxMs, frameMs);
-    perfDiagnostics.backgroundMs += backgroundMs;
-    perfDiagnostics.backgroundMaxMs = Math.max(perfDiagnostics.backgroundMaxMs, backgroundMs);
-    perfDiagnostics.drawMs += drawMs;
-    perfDiagnostics.drawMaxMs = Math.max(perfDiagnostics.drawMaxMs, drawMs);
-    const now = performance.now();
-    if (now - perfDiagnostics.lastReportAt >= 1000) {
-        const count = Math.max(1, perfDiagnostics.frames);
-        const report = {
-            fps: Math.round(count * 1000 / Math.max(1, now - perfDiagnostics.lastReportAt)),
-            frameAvgMs: +(perfDiagnostics.frameMs / count).toFixed(2),
-            frameMaxMs: +perfDiagnostics.frameMaxMs.toFixed(2),
-            backgroundAvgMs: +(perfDiagnostics.backgroundMs / count).toFixed(2),
-            backgroundMaxMs: +perfDiagnostics.backgroundMaxMs.toFixed(2),
-            drawAvgMs: +(perfDiagnostics.drawMs / count).toFixed(2),
-            drawMaxMs: +perfDiagnostics.drawMaxMs.toFixed(2),
-            mobile: isMobile, dpr: gameDpr
-        };
-        console.info('[Cyber Tetris perf]', report);
-        Object.assign(perfDiagnostics, {
-            frames: 0, frameMs: 0, frameMaxMs: 0,
-            backgroundMs: 0, backgroundMaxMs: 0,
-            drawMs: 0, drawMaxMs: 0,
-            lastReportAt: now
-        });
-        window.__cyberTetrisPerf = report;
-        if (window.__cyberTetrisPerfPanel) {
-            const audio = musicCurrentAudio;
-            window.__cyberTetrisPerfPanel.textContent =
-                'FPS: ' + report.fps + ' | frame avg/max: ' + report.frameAvgMs + '/' + report.frameMaxMs + ' ms\\n' +
-                'DRAW avg/max: ' + report.drawAvgMs + '/' + report.drawMaxMs + ' ms\\n' +
-                'BG avg/max: ' + report.backgroundAvgMs + '/' + report.backgroundMaxMs + ' ms\\n' +
-                'DPR: ' + report.dpr + ' | mobile: ' + report.mobile + '\\n' +
-                'Music: ' + (audio ? audio.currentTime.toFixed(1) + 's / state ' + audio.readyState + ' / network ' + audio.networkState : 'none');
-        }
-    }
-}
-if (perfDiagnosticsEnabled) {
-    window.__cyberTetrisPerf = { status: 'enabled', hint: 'Performance samples are printed once per second.' };
-    const perfPanel = document.createElement('div');
-    perfPanel.id = 'cyber-tetris-perf-panel';
-    perfPanel.style.cssText = 'position:fixed;z-index:99999;left:8px;top:8px;padding:8px 10px;background:rgba(0,0,0,.88);color:#7fffd4;border:1px solid #38cdb0;border-radius:6px;font:12px/1.45 monospace;white-space:pre;pointer-events:none;max-width:92vw;';
-    perfPanel.textContent = 'Cyber Tetris performance monitor: waiting for sample…';
-    if (document.body) document.body.appendChild(perfPanel);
-    else document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(perfPanel),{once:true});
-    window.__cyberTetrisPerfPanel = perfPanel;
-}
 
 // ===================== BACKGROUND (3D GRID + PARTICLES) =====================
 const bgCanvas = document.getElementById('bg-canvas');
@@ -5626,12 +5544,8 @@ function advanceGameOver(timestamp) {
 }
 
 function update(time = 0) {
-    const perfFrameStart = perfDiagnosticsEnabled ? performance.now() : 0;
-    let perfBackgroundMs = 0, perfDrawMs = 0;
     if (!BACKGROUND_FRAME_INTERVAL || time - lastBackgroundPaint >= BACKGROUND_FRAME_INTERVAL) {
-        const bgStart = perfDiagnosticsEnabled ? performance.now() : 0;
         drawBackground(time);
-        if (perfDiagnosticsEnabled) perfBackgroundMs = performance.now() - bgStart;
         lastBackgroundPaint = time;
     }
     currentFrameTime = time;
@@ -5646,23 +5560,13 @@ function update(time = 0) {
     if (gameOverAnim) {
         advanceGameOver(time);
         updateShake(delta);
-        const drawStart = perfDiagnosticsEnabled ? performance.now() : 0;
         draw();
-        if (perfDiagnosticsEnabled) {
-            perfDrawMs = performance.now() - drawStart;
-            recordPerfSample(perfFrameStart, perfBackgroundMs, perfDrawMs);
-        }
         requestAnimationFrame(update);
         return;
     }
 
     if (paused || isGameOver) {
-        const drawStart = perfDiagnosticsEnabled ? performance.now() : 0;
         draw();
-        if (perfDiagnosticsEnabled) {
-            perfDrawMs = performance.now() - drawStart;
-            recordPerfSample(perfFrameStart, perfBackgroundMs, perfDrawMs);
-        }
         requestAnimationFrame(update);
         return;
     }
@@ -5672,12 +5576,7 @@ function update(time = 0) {
     if (lineClearAnim) {
         advanceLineClear(delta);
         updateShake(delta);
-        const drawStart = perfDiagnosticsEnabled ? performance.now() : 0;
         draw();
-        if (perfDiagnosticsEnabled) {
-            perfDrawMs = performance.now() - drawStart;
-            recordPerfSample(perfFrameStart, perfBackgroundMs, perfDrawMs);
-        }
         requestAnimationFrame(update);
         return;
     }
@@ -5721,12 +5620,7 @@ function update(time = 0) {
     if (dropCounter > speed) playerDrop(false);
 
     updateShake(delta);
-    const drawStart = perfDiagnosticsEnabled ? performance.now() : 0;
-    draw();
-    if (perfDiagnosticsEnabled) {
-        perfDrawMs = performance.now() - drawStart;
-        recordPerfSample(perfFrameStart, perfBackgroundMs, perfDrawMs);
-    }
+        draw();
     requestAnimationFrame(update);
 }
 
@@ -6140,65 +6034,6 @@ function bindFloatingJoystick() {
 }
 
 // Relative analog slider: one cell per deliberate finger travel step; stationary holds never auto-repeat.
-// Optional horizontal-touch diagnostics. Enabled only with ?touchdiag=1; no network traffic.
-const touchDiagnostics = (() => {
-    const enabled = new URLSearchParams(location.search).get('touchdiag') === '1';
-    const storageKey = 'cyberTetrisHorizontalTouchDiagnosticsV1';
-    let entries = [];
-    if (enabled) {
-        try {
-            const saved = JSON.parse(localStorage.getItem(storageKey) || '[]');
-            if (Array.isArray(saved)) entries = saved.slice(-1200);
-        } catch (_) {}
-    }
-    const record = (type, fields = []) => {
-        if (!enabled) return;
-        entries.push([performance.now(), type, ...fields]);
-        if (entries.length > 1200) entries.splice(0, entries.length - 1200);
-    };
-    const flush = () => {
-        if (!enabled) return;
-        try { localStorage.setItem(storageKey, JSON.stringify(entries)); } catch (_) {}
-    };
-    const exportText = () => JSON.stringify({
-        version: 1,
-        userAgent: navigator.userAgent,
-        platform: navigator.platform,
-        viewport: { width: innerWidth, height: innerHeight, dpr: devicePixelRatio },
-        entries
-    });
-    if (enabled) {
-        window.__cyberTetrisTouchDiagnostics = {
-            enabled: true,
-            exportText,
-            clear() { entries = []; try { localStorage.removeItem(storageKey); } catch (_) {} },
-            count() { return entries.length; }
-        };
-        const copyButton = document.createElement('button');
-        copyButton.type = 'button';
-        copyButton.textContent = 'COPY TOUCH LOG';
-        Object.assign(copyButton.style, {
-            position: 'fixed', top: '8px', right: '8px', zIndex: '99999',
-            padding: '8px 10px', border: '1px solid #55dff5', borderRadius: '7px',
-            background: 'rgba(3,12,27,.94)', color: '#bdf8ff',
-            font: '700 10px system-ui', letterSpacing: '.06em'
-        });
-        copyButton.addEventListener('click', async () => {
-            flush();
-            const data = exportText();
-            try {
-                await navigator.clipboard.writeText(data);
-                copyButton.textContent = 'LOG COPIED';
-            } catch (_) {
-                window.prompt('Скопируй диагностический лог:', data);
-            }
-        });
-        document.body.appendChild(copyButton);
-        record('session-start', [location.href, navigator.userAgent, innerWidth, innerHeight, devicePixelRatio]);
-    }
-    return { enabled, record, flush };
-})();
-
 // Relative analog slider: one cell per deliberate finger travel step; stationary holds never auto-repeat.
 function bindMobileStick() {
     const el=document.getElementById('mc-stick');
@@ -6211,10 +6046,7 @@ function bindMobileStick() {
     const consumeAccumulator=()=>{
         while(Math.abs(moveAccumulator)>=stepPx){
             const direction=Math.sign(moveAccumulator);
-            const diagnostic=touchDiagnostics.enabled;
-            const startedAt=diagnostic?performance.now():0;
             const moved=playerMove(direction);
-            if(diagnostic) touchDiagnostics.record('move',[startedAt,performance.now(),direction,moved?1:0,moveAccumulator]);
             if(!moved){ moveAccumulator=0; reversalBuffer=0; break; }
             moveAccumulator-=direction*stepPx;
         }
@@ -6250,9 +6082,6 @@ function bindMobileStick() {
         el.classList.remove('pressed');
     };
     const applyMovementSamples=(samples,sourceEvent,source='pointermove')=>{
-        const diagnostic=touchDiagnostics.enabled;
-        const receivedAt=diagnostic?performance.now():0;
-        if(diagnostic) touchDiagnostics.record('batch',[source,sourceEvent?.timeStamp??null,receivedAt,samples.length,sourceEvent?.pointerType??null]);
         for(let i=0;i<samples.length;i++){
             const sample=samples[i];
             const dx=sample.clientX-lastPointerX;
@@ -6260,7 +6089,6 @@ function bindMobileStick() {
             totalFingerDx+=dx;
             const visualDx=Math.max(-maxTravel,Math.min(maxTravel,totalFingerDx));
             el.style.setProperty('--stick-x',`${visualDx}px`);
-            if(diagnostic) touchDiagnostics.record('sample',[sample.timeStamp??null,receivedAt,sample.clientX,dx,i,samples.length,moveAccumulator,reversalBuffer]);
             if(!canMove()) { moveAccumulator=0; reversalBuffer=0; continue; }
             applyDelta(dx);
         }
@@ -6277,7 +6105,6 @@ function bindMobileStick() {
         stickCenterX=rect.left+rect.width/2;
         maxTravel=Math.max(42,(rect.width-48)*.5);
         stepPx=Math.max(10,Math.min(18,rect.width*.075))/controlSettings.sensitivity;
-        if(touchDiagnostics.enabled) touchDiagnostics.record('pointerdown',[ev.timeStamp,ev.pointerType,ev.clientX,stepPx,rect.width,controlSettings.sensitivity]);
         try{el.setPointerCapture(ev.pointerId);}catch(_){}
         el.classList.add('pressed');
     },{passive:false});
@@ -6293,7 +6120,6 @@ function bindMobileStick() {
         ev.preventDefault?.();
         const id=pointerId;
         if(applyFinalCoordinate && Number.isFinite(ev.clientX) && ev.clientX!==lastPointerX){
-            if(touchDiagnostics.enabled) touchDiagnostics.record('pointerup-final-coordinate',[ev.timeStamp,ev.clientX,lastPointerX,ev.clientX-lastPointerX]);
             applyMovementSamples([ev],ev,'pointerup-final');
         }
         if(applyFinalCoordinate && Number.isFinite(ev.clientX) && Number.isFinite(ev.clientY)){
@@ -6303,18 +6129,15 @@ function bindMobileStick() {
             if(isTap){
                 const offset=pointerDownX-stickCenterX;
                 const tapDirection=Math.abs(offset)<=8?0:(offset<0?-1:1);
-                if(touchDiagnostics.enabled) touchDiagnostics.record('slider-tap',[tapDuration,maxPointerDistance,pointerDownX,stickCenterX,tapDirection]);
                 if(tapDirection && canMove()) playerMove(tapDirection);
             }
         }
-        if(touchDiagnostics.enabled) touchDiagnostics.record(applyFinalCoordinate?'pointerup':'pointercancel',[ev.timeStamp??null,ev.clientX??null,lastPointerX,moveAccumulator,reversalBuffer]);
         reset();
-        touchDiagnostics.flush();
         try{if(el.hasPointerCapture(id))el.releasePointerCapture(id);}catch(_){}
     };
     el.addEventListener('pointerup',ev=>finish(ev,true),{passive:false});
     el.addEventListener('pointercancel',ev=>finish(ev,false),{passive:false});
-    el.addEventListener('lostpointercapture',()=>{if(pointerId!==null){if(touchDiagnostics.enabled)touchDiagnostics.record('lostpointercapture',[lastPointerX]);reset();touchDiagnostics.flush();}});
+    el.addEventListener('lostpointercapture',()=>{if(pointerId!==null)reset();});
     el.addEventListener('contextmenu',ev=>ev.preventDefault());
     el.addEventListener('keydown',ev=>{
         if(!canMove()) return;
@@ -6322,7 +6145,7 @@ function bindMobileStick() {
             ev.preventDefault(); playerMove(ev.key==='ArrowLeft'?-1:1);
         }
     });
-    window.addEventListener('blur',()=>{if(pointerId!==null&&touchDiagnostics.enabled)touchDiagnostics.record('blur',[lastPointerX]);reset();touchDiagnostics.flush();});
+    window.addEventListener('blur',()=>{if(pointerId!==null)reset();});
 }
 
 bindMobileStick();
