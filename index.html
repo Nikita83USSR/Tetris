@@ -118,6 +118,13 @@
         maybeReveal();
       };
       window.addEventListener('message',event=>{
+        if(event.origin===location.origin){
+          const sameSource=event.source===frame.contentWindow;
+          if(!sameSource) dbg('MESSAGE SOURCE MISMATCH: '+String(event.data?.type||'unknown'));
+          else if(event.data?.type==='CYBER_TETRIS_DEBUG' || event.data?.type==='CYBER_TETRIS_BOOT') dbg('RAW GAME MESSAGE RECEIVED: '+String(event.data.message||event.data.label||event.data.type));
+        }
+      });
+      window.addEventListener('message',event=>{
         if(event.origin!==location.origin || event.source!==frame.contentWindow) return;
         const data=event.data;
         if(!data)return;
