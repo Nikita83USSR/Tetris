@@ -3591,9 +3591,9 @@ function drawNeonAuraCell(context, x, y, color, alpha = 1) {
     context.restore();
 }
 
-function drawMatrixNeonAura(m, off, pulse = 1) {
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
+function drawMatrixNeonAura(m, off, pulse = 1, targetContext = ctx) {
+    targetContext.save();
+    targetContext.globalCompositeOperation = 'lighter';
     m.forEach((row, y) => {
         let drawY = y + off.y;
         let alpha = 1;
@@ -3609,9 +3609,34 @@ function drawMatrixNeonAura(m, off, pulse = 1) {
                 const local = Math.max(0, Math.min(1, (t - stagger) / (1 - stagger)));
                 alpha = 1 - Math.pow(local, 1.35);
             } else alpha = 1;
-            if (alpha > .025) drawNeonAuraCell(ctx, x + off.x, drawY, COLORS[v], alpha * pulse);
+            if (alpha > .025) drawNeonAuraCell(targetContext, x + off.x, drawY, COLORS[v], alpha * pulse);
         });
     });
+    targetContext.restore();
+}
+
+// Static locked-block aura is rasterized once and reused. The signature scan is tiny
+// (200 cells); expensive radial gradients and shadow blur are rebuilt only when the
+// settled matrix actually changes. Animated line clears keep the live rendering path.
+let matrixAuraCache = null;
+let matrixAuraCacheKey = '';
+function drawCachedMatrixNeonAura(m, pulse = 1) {
+    const key = m.map(row => row.join(',')).join(';');
+    if (!matrixAuraCache || matrixAuraCacheKey !== key ||
+        matrixAuraCache.width !== canvas.width || matrixAuraCache.height !== canvas.height) {
+        if (!matrixAuraCache) matrixAuraCache = document.createElement('canvas');
+        matrixAuraCache.width = canvas.width;
+        matrixAuraCache.height = canvas.height;
+        const auraCtx = matrixAuraCache.getContext('2d');
+        auraCtx.setTransform(BLOCK * gameDpr, 0, 0, BLOCK * gameDpr, 0, 0);
+        auraCtx.clearRect(0, 0, COL, ROW);
+        drawMatrixNeonAura(m, {x:0, y:0}, 1, auraCtx);
+        matrixAuraCacheKey = key;
+    }
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha *= pulse;
+    ctx.drawImage(matrixAuraCache, 0, 0, COL, ROW);
     ctx.restore();
 }
 
@@ -4460,7 +4485,8 @@ function draw() {
         // A very slow, shallow breathing cycle keeps the neon alive without flashing.
         // Respect the operating system's reduced-motion preference.
         const neonPulse = reducedMotion ? 1 : 1 + Math.sin(currentFrameTime * (Math.PI * 2 / 7600)) * 0.055;
-        drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse);
+        if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse);
+        else drawCachedMatrixNeonAura(matrix, neonPulse);
         if (player.piece) drawPieceNeonAura(player.piece, player.pos, 1, neonPulse);
         drawMatrix(matrix, {x:0, y:0});
         if (lineClearAnim) drawLineClearEffect();
