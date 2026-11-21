@@ -2101,6 +2101,23 @@
     </div>
 </div>
 
+<script>
+/* Independent iframe probe: deliberately separate from the large game script. */
+(function(){
+  function send(message){
+    try{parent.postMessage({type:'CYBER_TETRIS_DEBUG',message:'IFRAME PROBE: '+message},'*');}catch(e){}
+  }
+  send('game.html parsed; probe script executing');
+  window.addEventListener('error',function(e){
+    send('SCRIPT ERROR: '+(e.message||'unknown')+' @ '+(e.filename||'')+':'+(e.lineno||0));
+  });
+  window.addEventListener('unhandledrejection',function(e){
+    send('UNHANDLED REJECTION: '+String(e.reason));
+  });
+  document.addEventListener('DOMContentLoaded',function(){send('iframe DOMContentLoaded');});
+  window.addEventListener('load',function(){send('iframe window load');});
+})();
+</script>
 <script src="./assets/config.js"></script>
 <script>
 (() => {
