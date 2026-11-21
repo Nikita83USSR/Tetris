@@ -2167,7 +2167,7 @@ function recordPerfSample(frameStart, backgroundMs = 0, drawMs = 0) {
     if (now - perfDiagnostics.lastReportAt >= 1000) {
         const count = Math.max(1, perfDiagnostics.frames);
         const report = {
-            fps: Math.round(count * 1000 / Math.max(1, perfDiagnostics.frameMs)),
+            fps: Math.round(count * 1000 / Math.max(1, now - perfDiagnostics.lastReportAt)),
             frameAvgMs: +(perfDiagnostics.frameMs / count).toFixed(2),
             frameMaxMs: +perfDiagnostics.frameMaxMs.toFixed(2),
             backgroundAvgMs: +(perfDiagnostics.backgroundMs / count).toFixed(2),
