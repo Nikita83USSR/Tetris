@@ -37,6 +37,9 @@
     .load-error{display:none;margin:13px auto 0;color:#ffb6a7;font-size:10px;line-height:1.5}
     #boot-debug{position:fixed;z-index:9;left:10px;right:10px;bottom:10px;max-height:24vh;overflow:auto;padding:8px 10px;border:1px solid rgba(100,230,255,.25);border-radius:9px;background:rgba(0,5,15,.78);color:#aeefff;font:10px/1.45 monospace;text-align:left;white-space:pre-wrap;pointer-events:none}
     .retry{display:none;margin:10px auto 0;min-height:38px;padding:0 19px;border:1px solid rgba(255,170,119,.72);border-bottom:3px solid #81391f;border-radius:11px;background:linear-gradient(180deg,#ffbd7c,#e85d3b);color:#23111b;font-weight:950;letter-spacing:.1em}
+    .loader-actions{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .loader-action{min-height:36px;padding:0 13px;border:1px solid rgba(100,230,255,.48);border-radius:10px;background:rgba(13,35,58,.88);color:#bdf7ff;font-size:9px;font-weight:900;letter-spacing:.08em}
+    .loader-action:active{transform:translateY(1px);filter:brightness(1.2)}
     .load-failed .load-error,.load-failed .retry{display:block}
     @keyframes orbPulse{0%,100%{transform:scale(1);filter:brightness(.96)}50%{transform:scale(1.08);filter:brightness(1.17)}}
     @keyframes orbRing{to{transform:rotate(360deg)}}
@@ -58,6 +61,7 @@
     <div class="loading-foot"><span id="loading-stage">ИНИЦИАЛИЗАЦИЯ</span><span id="loading-percent">07%</span></div>
     <div class="load-error" id="load-error">Не удалось загрузить игровые ресурсы. Проверьте соединение и попробуйте ещё раз.</div>
     <button class="retry" id="retry-btn" type="button">ПОВТОРИТЬ ЗАГРУЗКУ</button>
+    <div class="loader-actions"><button class="loader-action" id="refresh-page-btn" type="button">ОБНОВИТЬ ИГРУ</button><button class="loader-action" id="copy-log-btn" type="button">СКОПИРОВАТЬ ЛОГ</button></div>
   </main>
   <div id="boot-debug">DEBUG BOOT: ожидание iframe…</div>
   <iframe id="game-frame" src="./game.html?v=15.1.2-no-atmosphere" title="Cyber Tetris — игра" allow="autoplay; fullscreen" allowfullscreen></iframe>
@@ -119,6 +123,8 @@
       slowTimer=window.setTimeout(()=>{
         if(!ready){caption.textContent='ЗАГРУЗКА ЗАНИМАЕТ БОЛЬШЕ ОБЫЧНОГО · ПРОДОЛЖАЕМ…';document.body.classList.add('load-failed');}
       },22000);
+      document.getElementById('refresh-page-btn').addEventListener('click',()=>{const url=new URL(location.href);url.searchParams.set('refresh',Date.now());location.replace(url.toString());});
+      document.getElementById('copy-log-btn').addEventListener('click',async()=>{const log=debugLines.join('\n');const btn=document.getElementById('copy-log-btn');try{await navigator.clipboard.writeText(log);btn.textContent='ЛОГ СКОПИРОВАН';}catch(_){const area=document.createElement('textarea');area.value=log;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();try{document.execCommand('copy');btn.textContent='ЛОГ СКОПИРОВАН';}catch(__){btn.textContent='НЕ УДАЛОСЬ СКОПИРОВАТЬ';}area.remove();}});
       document.getElementById('retry-btn').addEventListener('click',()=>{
         document.body.classList.remove('load-failed','game-ready');ready=false;frameLoaded=false;progress=7;setProgress(7,'Повторно загружаем игровые ресурсы…');
         const url=new URL('./game.html',location.href);url.searchParams.set('v','15.1.2-no-atmosphere');url.searchParams.set('reload',Date.now());frame.src=url.toString();
