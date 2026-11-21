@@ -2189,10 +2189,25 @@ function recordPerfSample(frameStart, backgroundMs = 0, drawMs = 0) {
             lastReportAt: now
         });
         window.__cyberTetrisPerf = report;
+        if (window.__cyberTetrisPerfPanel) {
+            const audio = musicCurrentAudio;
+            window.__cyberTetrisPerfPanel.textContent =
+                'FPS: ' + report.fps + ' | frame avg/max: ' + report.frameAvgMs + '/' + report.frameMaxMs + ' ms\\n' +
+                'DRAW avg/max: ' + report.drawAvgMs + '/' + report.drawMaxMs + ' ms\\n' +
+                'BG avg/max: ' + report.backgroundAvgMs + '/' + report.backgroundMaxMs + ' ms\\n' +
+                'DPR: ' + report.dpr + ' | mobile: ' + report.mobile + '\\n' +
+                'Music: ' + (audio ? audio.currentTime.toFixed(1) + 's / state ' + audio.readyState + ' / network ' + audio.networkState : 'none');
+        }
     }
 }
 if (perfDiagnosticsEnabled) {
     window.__cyberTetrisPerf = { status: 'enabled', hint: 'Performance samples are printed once per second.' };
+    const perfPanel = document.createElement('div');
+    perfPanel.id = 'cyber-tetris-perf-panel';
+    perfPanel.style.cssText = 'position:fixed;z-index:99999;left:8px;top:8px;padding:8px 10px;background:rgba(0,0,0,.88);color:#7fffd4;border:1px solid #38cdb0;border-radius:6px;font:12px/1.45 monospace;white-space:pre;pointer-events:none;max-width:92vw;';
+    perfPanel.textContent = 'Cyber Tetris performance monitor: waiting for sample…';
+    document.addEventListener('DOMContentLoaded',()=>document.body.appendChild(perfPanel));
+    window.__cyberTetrisPerfPanel = perfPanel;
 }
 
 // ===================== BACKGROUND (3D GRID + PARTICLES) =====================
