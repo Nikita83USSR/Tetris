@@ -68,7 +68,36 @@
   </main>
   <pre id="boot-debug" style="display:none;position:fixed!important;left:8px!important;right:8px!important;top:48px!important;bottom:auto!important;max-height:34vh!important;overflow:auto!important;z-index:2147483647!important;margin:0!important;padding:10px!important;background:rgba(0,5,15,.96)!important;color:#aeefff!important;border:1px solid #38cdb0!important;border-radius:8px!important;font:11px/1.45 monospace!important;white-space:pre-wrap!important;pointer-events:auto!important">DEBUG BOOT: ожидание iframe…</pre>
   <button id="copy-log-persistent" type="button" style="display:none;position:fixed;right:8px;top:8px;z-index:100000;padding:8px 10px;background:#07131f;color:#aeefff;border:1px solid #38cdb0;border-radius:6px;font:11px monospace">COPY BOOT LOG</button>
-  <iframe id="game-frame" src="./game.html?v=15.1.3-perf-debug" title="Cyber Tetris — игра" allow="autoplay; fullscreen" allowfullscreen></iframe>
+  <script>
+    // Independent emergency diagnostics: runs before the game iframe and main loader.
+    (() => {
+      if (new URLSearchParams(location.search).get('perf') !== '1') return;
+      const panel = document.getElementById('boot-debug');
+      panel.style.cssText = 'display:block!important;position:fixed!important;left:8px!important;right:8px!important;top:48px!important;bottom:auto!important;max-height:38vh!important;overflow:auto!important;z-index:2147483647!important;margin:0!important;padding:10px!important;background:rgba(0,5,15,.98)!important;color:#aeefff!important;border:2px solid #38cdb0!important;border-radius:8px!important;font:12px/1.5 monospace!important;white-space:pre-wrap!important;pointer-events:auto!important';
+      const lines = ['DIAGNOSTICS ACTIVE', 'URL: ' + location.href, 'Document: ' + document.readyState];
+      const render = () => { panel.textContent = lines.slice(-30).join('\\n'); };
+      window.__bootDiag = message => { lines.push(new Date().toLocaleTimeString() + ' ' + message); render(); };
+      window.addEventListener('error', e => window.__bootDiag('WINDOW ERROR: ' + (e.message || e.type)));
+      window.addEventListener('unhandledrejection', e => window.__bootDiag('PROMISE ERROR: ' + String(e.reason)));
+      window.addEventListener('load', () => window.__bootDiag('WINDOW LOAD'));
+      window.__bootDiag('EARLY SCRIPT EXECUTED');
+      document.addEventListener('DOMContentLoaded', () => {
+        const frame = document.getElementById('game-frame');
+        window.__bootDiag('DOM READY; iframe=' + (!!frame) + (frame ? '; src=' + frame.src : ''));
+        if (frame) {
+          frame.addEventListener('load', () => window.__bootDiag('IFRAME LOAD EVENT'));
+          frame.addEventListener('error', () => window.__bootDiag('IFRAME ERROR EVENT'));
+        }
+      });
+      setInterval(() => {
+        const frame = document.getElementById('game-frame');
+        let state = 'not-created';
+        try { state = frame ? (frame.contentDocument ? frame.contentDocument.readyState : 'cross-origin/unavailable') : state; } catch (_) { state = 'cross-origin'; }
+        window.__bootDiag('HEARTBEAT; page=' + document.readyState + '; iframe=' + state);
+      }, 3000);
+    })();
+  </script>
+  <iframe id="game-frame" src="./game.html?v=15.1.4-independent-diag" title="Cyber Tetris — игра" allow="autoplay; fullscreen" allowfullscreen></iframe>
   <noscript><p style="position:fixed;z-index:10;top:50%;left:10%;right:10%;text-align:center">Для запуска Cyber Tetris необходимо включить JavaScript.</p></noscript>
   <script>
     (()=>{
@@ -132,7 +161,7 @@
       document.getElementById('copy-log-btn').addEventListener('click',async()=>{const log=debugLines.join('\n');const btn=document.getElementById('copy-log-btn');try{await navigator.clipboard.writeText(log);btn.textContent='ЛОГ СКОПИРОВАН';}catch(_){const area=document.createElement('textarea');area.value=log;area.style.position='fixed';area.style.opacity='0';document.body.appendChild(area);area.select();try{document.execCommand('copy');btn.textContent='ЛОГ СКОПИРОВАН';}catch(__){btn.textContent='НЕ УДАЛОСЬ СКОПИРОВАТЬ';}area.remove();}});
       document.getElementById('retry-btn').addEventListener('click',()=>{
         document.body.classList.remove('load-failed','game-ready');ready=false;frameLoaded=false;progress=7;setProgress(7,'Повторно загружаем игровые ресурсы…');
-        const url=new URL('./game.html',location.href);url.searchParams.set('v','15.1.3-perf-debug');url.searchParams.set('reload',Date.now());frame.src=url.toString();
+        const url=new URL('./game.html',location.href);url.searchParams.set('v','15.1.4-independent-diag');url.searchParams.set('reload',Date.now());frame.src=url.toString();
         slowTimer=window.setTimeout(()=>{if(!ready)document.body.classList.add('load-failed');},22000);
       });
     })();
