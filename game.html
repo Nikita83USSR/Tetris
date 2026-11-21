@@ -3534,98 +3534,62 @@ function buildBlockSprite(value, frame) {
     const motion = frame / BLOCK_SPRITE_FRAMES * Math.PI * 2;
     const breathe = .5 + .5 * Math.sin(motion);
 
-    // Soft colored neon bloom: visible around the block, but never a hard outline.
-    c.shadowBlur = 12 + breathe * 3;
+    // Three restrained bloom layers: broad atmosphere, saturated halo, tight colored light.
+    const glowShape = () => {
+        roundedPath(c, .105, .105, .79, .79, .075);
+        c.fillStyle = color;
+        c.fill();
+    };
+    c.save();
+    c.globalAlpha = .15 + breathe * .035;
     c.shadowColor = color;
-    const body = c.createLinearGradient(.08, 0, .92, 1);
-    body.addColorStop(0, shade(color, 38));
-    body.addColorStop(.24, shade(color, 18));
-    body.addColorStop(.62, shade(color, -8));
-    body.addColorStop(1, shade(color, -62));
-    roundedPath(c, .045, .045, .91, .91, .105);
+    c.shadowBlur = 24;
+    glowShape();
+    c.restore();
+
+    c.save();
+    c.globalAlpha = .24 + breathe * .045;
+    c.shadowColor = color;
+    c.shadowBlur = 14;
+    glowShape();
+    c.restore();
+
+    c.save();
+    c.globalAlpha = .32 + breathe * .05;
+    c.shadowColor = color;
+    c.shadowBlur = 7;
+    glowShape();
+    c.restore();
+
+    // Flat luminous face: no bevels, facets, glossy stripes or white outline.
+    const body = c.createLinearGradient(0, .08, 0, .94);
+    body.addColorStop(0, shade(color, 24));
+    body.addColorStop(.48, color);
+    body.addColorStop(1, shade(color, -22));
+    roundedPath(c, .075, .075, .85, .85, .075);
     c.fillStyle = body;
     c.fill();
 
-    // A second, wider and weaker pass creates atmospheric color spill, not a neon tube.
-    c.shadowBlur = 19 + breathe * 4;
-    c.shadowColor = color;
-    c.globalAlpha = .22;
-    c.fillStyle = color;
-    roundedPath(c, .075, .075, .85, .85, .09);
-    c.fill();
-    c.globalAlpha = 1;
-    c.shadowBlur = 0;
+    // Very soft inner illumination adds polish while keeping the tile visually flat.
     c.save();
-    roundedPath(c, .075, .075, .85, .85, .075);
+    roundedPath(c, .085, .085, .83, .83, .07);
     c.clip();
-
-    // Broad, quiet face facets give the block volume without a glossy stripe.
-    const face = c.createLinearGradient(0, .08, .86, .94);
-    face.addColorStop(0, 'rgba(255,255,255,.105)');
-    face.addColorStop(.42, 'rgba(255,255,255,.018)');
-    face.addColorStop(1, 'rgba(0,0,0,.22)');
-    c.fillStyle = face;
-    c.fillRect(.07, .07, .86, .86);
-
-    c.beginPath();
-    c.moveTo(.10, .12);
-    c.lineTo(.76, .12);
-    c.lineTo(.30, .47);
-    c.lineTo(.10, .47);
-    c.closePath();
-    c.fillStyle = 'rgba(255,255,255,.075)';
-    c.fill();
-
-    c.beginPath();
-    c.moveTo(.92, .18);
-    c.lineTo(.92, .88);
-    c.lineTo(.18, .92);
-    c.lineTo(.48, .70);
-    c.closePath();
-    c.fillStyle = 'rgba(0,0,0,.15)';
-    c.fill();
-
-    // Fine bevels catch light on the upper/left planes and deepen the opposite edge.
-    c.beginPath();
-    c.moveTo(.13, .10);
-    c.lineTo(.78, .10);
-    c.quadraticCurveTo(.88, .10, .90, .20);
-    c.strokeStyle = 'rgba(255,255,255,.16)';
-    c.lineWidth = .018;
-    c.stroke();
-    c.beginPath();
-    c.moveTo(.10, .20);
-    c.lineTo(.10, .78);
-    c.quadraticCurveTo(.10, .88, .20, .90);
-    c.strokeStyle = 'rgba(255,255,255,.095)';
-    c.lineWidth = .018;
-    c.stroke();
-    c.beginPath();
-    c.moveTo(.90, .28);
-    c.lineTo(.90, .80);
-    c.quadraticCurveTo(.90, .90, .80, .90);
-    c.strokeStyle = 'rgba(0,0,0,.22)';
-    c.lineWidth = .025;
-    c.stroke();
-
-    // A restrained moving reflection lives inside the face, never on the silhouette.
-    const reflectionX = -.72 + (frame / (BLOCK_SPRITE_FRAMES - 1)) * 2.0;
-    const reflection = c.createLinearGradient(reflectionX, .18, reflectionX + .34, .76);
-    reflection.addColorStop(0, 'rgba(255,255,255,0)');
-    reflection.addColorStop(.5, `rgba(255,255,255,${.018 + breathe * .026})`);
-    reflection.addColorStop(1, 'rgba(255,255,255,0)');
-    c.fillStyle = reflection;
+    const inner = c.createRadialGradient(.34, .25, .02, .48, .45, .72);
+    inner.addColorStop(0, 'rgba(255,255,255,.13)');
+    inner.addColorStop(.48, 'rgba(255,255,255,.035)');
+    inner.addColorStop(1, 'rgba(0,0,0,.13)');
+    c.fillStyle = inner;
     c.fillRect(.08, .08, .84, .84);
     c.restore();
 
-    // Dark inset separates neighboring cells; a tiny color rim keeps the shape crisp.
-    c.strokeStyle = 'rgba(0,0,0,.25)';
-    c.lineWidth = .035;
-    roundedPath(c, .065, .065, .87, .87, .085);
+    // Dark separation keeps adjacent cells crisp; the colored rim is barely visible.
+    c.strokeStyle = 'rgba(0,0,0,.24)';
+    c.lineWidth = .026;
+    roundedPath(c, .075, .075, .85, .85, .075);
     c.stroke();
-    c.strokeStyle = `rgba(255,255,255,${.055 + breathe * .018})`;
-    c.lineWidth = .012;
-    roundedPath(c, .052, .052, .896, .896, .095);
+    c.strokeStyle = 'rgba(255,255,255,.045)';
+    c.lineWidth = .009;
+    roundedPath(c, .085, .085, .83, .83, .07);
     c.stroke();
     return sprite;
 }
@@ -3659,65 +3623,48 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
     // Draw mobile blocks directly on the main canvas; no sprite dependency.
     if (isMobile) {
         const color = COLORS[value];
+        const pulse = .5 + .5 * Math.sin(time * .0032 + x * .7 + y * .43);
         context.save();
         context.globalAlpha *= alpha;
-        context.shadowBlur = 5;
-        context.shadowColor = color;
-        const body = context.createLinearGradient(x + .06, y + .04, x + .92, y + .96);
-        body.addColorStop(0, shade(color, 28));
-        body.addColorStop(.34, shade(color, 8));
-        body.addColorStop(.72, shade(color, -12));
-        body.addColorStop(1, shade(color, -55));
-        roundedPath(context, x + .045, y + .045, .91, .91, .105);
+
+        // Match desktop: a wide atmospheric halo, a saturated mid glow and a tight core.
+        const glow = (blur, opacity) => {
+            context.save();
+            context.globalAlpha *= opacity;
+            context.shadowColor = color;
+            context.shadowBlur = blur;
+            roundedPath(context, x + .10, y + .10, .80, .80, .075);
+            context.fillStyle = color;
+            context.fill();
+            context.restore();
+        };
+        glow(18, .16 + pulse * .025);
+        glow(11, .25 + pulse * .035);
+        glow(5, .34 + pulse * .045);
+
+        // Clean, flat color surface; depth comes from light, not 3D bevels.
+        const body = context.createLinearGradient(x, y + .08, x, y + .94);
+        body.addColorStop(0, shade(color, 24));
+        body.addColorStop(.48, color);
+        body.addColorStop(1, shade(color, -22));
+        roundedPath(context, x + .075, y + .075, .85, .85, .075);
         context.fillStyle = body;
         context.fill();
-        context.shadowBlur = 0;
 
         context.save();
-        roundedPath(context, x + .075, y + .075, .85, .85, .075);
+        roundedPath(context, x + .085, y + .085, .83, .83, .07);
         context.clip();
-        const face = context.createLinearGradient(x, y, x + .9, y + .95);
-        face.addColorStop(0, 'rgba(255,255,255,.10)');
-        face.addColorStop(.44, 'rgba(255,255,255,.015)');
-        face.addColorStop(1, 'rgba(0,0,0,.20)');
-        context.fillStyle = face;
-        context.fillRect(x + .07, y + .07, .86, .86);
-        context.beginPath();
-        context.moveTo(x + .10, y + .12);
-        context.lineTo(x + .76, y + .12);
-        context.lineTo(x + .30, y + .47);
-        context.lineTo(x + .10, y + .47);
-        context.closePath();
-        context.fillStyle = 'rgba(255,255,255,.07)';
-        context.fill();
-        context.beginPath();
-        context.moveTo(x + .92, y + .18);
-        context.lineTo(x + .92, y + .88);
-        context.lineTo(x + .18, y + .92);
-        context.lineTo(x + .48, y + .70);
-        context.closePath();
-        context.fillStyle = 'rgba(0,0,0,.15)';
-        context.fill();
-
-        context.beginPath();
-        context.moveTo(x + .13, y + .10);
-        context.lineTo(x + .78, y + .10);
-        context.moveTo(x + .10, y + .20);
-        context.lineTo(x + .10, y + .78);
-        context.strokeStyle = 'rgba(255,255,255,.14)';
-        context.lineWidth = .018;
-        context.stroke();
-        context.beginPath();
-        context.moveTo(x + .90, y + .28);
-        context.lineTo(x + .90, y + .80);
-        context.strokeStyle = 'rgba(0,0,0,.20)';
-        context.lineWidth = .025;
-        context.stroke();
+        const inner = context.createRadialGradient(x + .34, y + .25, .02, x + .48, y + .45, .72);
+        inner.addColorStop(0, 'rgba(255,255,255,.13)');
+        inner.addColorStop(.48, 'rgba(255,255,255,.035)');
+        inner.addColorStop(1, 'rgba(0,0,0,.13)');
+        context.fillStyle = inner;
+        context.fillRect(x + .08, y + .08, .84, .84);
         context.restore();
 
-        roundedPath(context, x + .065, y + .065, .87, .87, .085);
-        context.strokeStyle = 'rgba(0,0,0,.25)';
-        context.lineWidth = .035;
+        roundedPath(context, x + .075, y + .075, .85, .85, .075);
+        context.strokeStyle = 'rgba(0,0,0,.24)';
+        context.lineWidth = .026;
         context.stroke();
         context.restore();
         return;
