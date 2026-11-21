@@ -2756,7 +2756,7 @@ const MUSIC_BASE='./assets/audio/music/';
 function discoverMusicFiles(){const found=[];return Promise.all(Array.from({length:40},(_,i)=>i+1).map(async n=>{const url=MUSIC_BASE+n+'.mp3';try{const r=await fetch(url,{headers:{Range:'bytes=0-0'},cache:'no-store'});const type=r.headers.get('content-type')||'';if(r.body)r.body.cancel().catch(()=>{});if(r.status===206||(r.ok&&/^audio\//i.test(type))){found.push(n);return;}if(r.ok&&r.status===200){if(/^audio\//i.test(type))found.push(n);return;}}catch(_){}try{const r=await fetch(url,{method:'HEAD',cache:'no-store'});if(r.ok&&/^audio\//i.test(r.headers.get('content-type')||''))found.push(n);}catch(_){}})).then(()=>found.sort((a,b)=>a-b));}
 function shuffleMusicBag(){musicBag=musicFiles.slice();for(let i=musicBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[musicBag[i],musicBag[j]]=[musicBag[j],musicBag[i]];}}
 let musicGraphNodes=new WeakMap();
-function wireMusicAudio(audio){if(musicGraphNodes.has(audio)||!ensureAudio())return musicGraphNodes.get(audio);try{const src=audioCtx.createMediaElementSource(audio),filter=audioCtx.createBiquadFilter(),comp=audioCtx.createDynamicsCompressor(),gain=audioCtx.createGain();filter.type='lowpass';filter.frequency.value=19000;filter.Q.value=.7;comp.threshold.value=-12;comp.ratio.value=2;gain.gain.value=.82;src.connect(filter);filter.connect(comp);comp.connect(gain);gain.connect(masterGain);const nodes={filter,comp,gain};musicGraphNodes.set(audio,nodes);return nodes;}catch(_){return null;}}
+function wireMusicAudio(audio){if(musicGraphNodes.has(audio)||!ensureAudio())return musicGraphNodes.get(audio);try{const src=audioCtx.createMediaElementSource(audio),filter=audioCtx.createBiquadFilter(),comp=audioCtx.createDynamicsCompressor(),gain=audioCtx.createGain();filter.type='lowpass';filter.frequency.value=19000;filter.Q.value=.7;comp.threshold.value=-12;comp.ratio.value=2;gain.gain.value=.82;src.connect(filter);filter.connect(comp);comp.connect(gain);gain.connect(musicGain||masterGain);const nodes={filter,comp,gain};musicGraphNodes.set(audio,nodes);return nodes;}catch(_){return null;}}
 function newMusicAudio(n){const a=new Audio(MUSIC_BASE+n+'.mp3');a.preload='auto';a.volume=1;return a;}
 function prepareNextMusic(){if(!musicFiles.length)return;if(!musicBag.length)shuffleMusicBag();musicNextIndex=musicBag.pop();musicNextAudio=newMusicAudio(musicNextIndex);}
 function startNumberedMusic(){discoverMusicFiles().then(files=>{musicFiles=files;if(!files.length||!musicPlaying||muted)return;shuffleMusicBag();prepareNextMusic();playNumberedNext();}).catch(()=>{});}
@@ -2839,8 +2839,7 @@ function updateSystemVoiceUI() {
     if (volumeValue) volumeValue.textContent = `${Math.round(systemVoiceVolume * 100)}%`;
 }
 function setSystemVoiceMusicDuck(active) {
-    // Duck the Web Audio soundtrack without touching HTMLAudio fallback tracks,
-    // whose volume may be in the middle of a level-up crossfade.
+    // Duck the dedicated music bus while keeping the voice on the master bus.
     if (active) {
         if (!systemVoiceDuckState) {
             systemVoiceDuckState = {
@@ -2851,7 +2850,7 @@ function setSystemVoiceMusicDuck(active) {
         if (audioCtx && musicGain) {
             const now = audioCtx.currentTime;
             musicGain.gain.cancelScheduledValues(now);
-            musicGain.gain.setTargetAtTime(Math.min(musicGain.gain.value, .28), now, .045);
+            musicGain.gain.setTargetAtTime(Math.min(musicGain.gain.value, .48), now, .045);
             if (overdriveGain && overdriveGain.gain.value > .001) {
                 overdriveGain.gain.cancelScheduledValues(now);
                 overdriveGain.gain.setTargetAtTime(Math.min(overdriveGain.gain.value, .22), now, .045);
