@@ -2859,14 +2859,74 @@ const MUSIC_BASE='./assets/audio/music/';
 function discoverMusicFiles(){return Promise.resolve([1,2,3,4,5,6]);}
 function shuffleMusicBag(){musicBag=musicFiles.slice();for(let i=musicBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[musicBag[i],musicBag[j]]=[musicBag[j],musicBag[i]];}}
 let musicGraphNodes=new WeakMap();
-function wireMusicAudio(audio){if(musicGraphNodes.has(audio)||!ensureAudio())return musicGraphNodes.get(audio);try{const src=audioCtx.createMediaElementSource(audio),filter=audioCtx.createBiquadFilter(),comp=audioCtx.createDynamicsCompressor(),gain=audioCtx.createGain();filter.type='lowpass';filter.frequency.value=19000;filter.Q.value=.7;comp.threshold.value=-12;comp.ratio.value=2;gain.gain.value=.82;src.connect(filter);filter.connect(comp);comp.connect(gain);gain.connect(musicGain||masterGain);const nodes={filter,comp,gain};musicGraphNodes.set(audio,nodes);return nodes;}catch(_){return null;}}
-function newMusicAudio(n){const a=new Audio(MUSIC_BASE+n+'.mp3');a.preload='auto';a.volume=1;return a;}
-function prepareNextMusic(){if(!musicFiles.length)return;if(!musicBag.length)shuffleMusicBag();musicNextIndex=musicBag.pop();musicNextAudio=newMusicAudio(musicNextIndex);musicNextAudio.load();}
+function wireMusicAudio(audio){
+    if(musicGraphNodes.has(audio))return musicGraphNodes.get(audio);
+    if(!ensureAudio())return null;
+    try{
+        const src=audioCtx.createMediaElementSource(audio);
+        const filter=audioCtx.createBiquadFilter();
+        const comp=audioCtx.createDynamicsCompressor();
+        const gain=audioCtx.createGain();
+        filter.type='lowpass';
+        filter.frequency.value=19000;
+        filter.Q.value=.7;
+        comp.threshold.value=-12;
+        comp.ratio.value=2;
+        gain.gain.value=.82;
+        // Keep ordinary playback on a single gain node. The filter and
+        // compressor are connected only for the short Overdrive effect.
+        src.connect(gain);
+        gain.connect(musicGain||masterGain);
+        const nodes={src,filter,comp,gain,overdrive:false};
+        musicGraphNodes.set(audio,nodes);
+        return nodes;
+    }catch(_){return null;}
+}
+let musicFirstWarmupAudio=null;
+function newMusicAudio(n,preload='none'){const a=new Audio(MUSIC_BASE+n+'.mp3');a.preload=preload;a.volume=1;return a;}
+function warmFirstMusicTrack(){
+    if(musicFirstWarmupAudio)return;
+    musicFirstWarmupAudio=newMusicAudio(1,'auto');
+    musicFirstWarmupAudio.load();
+}
+function prepareNextMusic(){
+    if(!musicFiles.length)return;
+    if(!musicBag.length)shuffleMusicBag();
+    musicNextIndex=musicBag.pop();
+    // Reserve the next track now, but don't compete with gameplay by downloading it yet.
+    musicNextAudio=newMusicAudio(musicNextIndex,'none');
+}
+function scheduleNextMusicPreload(audio){
+    if(!audio||!musicNextAudio)return;
+    let done=false;
+    const check=()=>{
+        if(done)return;
+        if(musicCurrentAudio!==audio||!musicPlaying||!musicNextAudio){
+            done=true;
+            audio.removeEventListener('timeupdate',check);
+            audio.removeEventListener('loadedmetadata',check);
+            return;
+        }
+        const remaining=audio.duration-audio.currentTime;
+        if(Number.isFinite(remaining)&&remaining<=75){
+            done=true;
+            audio.removeEventListener('timeupdate',check);
+            audio.removeEventListener('loadedmetadata',check);
+            musicNextAudio.preload='auto';
+            musicNextAudio.load();
+        }
+    };
+    audio.addEventListener('timeupdate',check);
+    audio.addEventListener('loadedmetadata',check);
+    check();
+}
 function startNumberedMusic(){
     if(!musicPlaying||muted)return;
     // Start the first media element synchronously from the user's tap. Mobile Safari
     // can reject play() when it is delayed until async file discovery finishes.
-    const first=newMusicAudio(1);
+    const first=musicFirstWarmupAudio||newMusicAudio(1,'auto');
+    musicFirstWarmupAudio=null;
+    if(first.readyState===0)first.load();
     musicCurrentAudio=first;
     currentMusicTrackIndex=1;
     wireMusicAudio(first);
@@ -2902,8 +2962,8 @@ function startNumberedMusic(){
     discoverMusicFiles().then(files=>{
         musicFiles=files.filter(n=>n!==1);
         if(!musicPlaying||muted||!musicFiles.length)return;
-        if(advanced&&musicCurrentAudio===first){shuffleMusicBag();prepareNextMusic();playNumberedNext();}
-        else if(!advanced){shuffleMusicBag();prepareNextMusic();}
+        if(advanced&&musicCurrentAudio===first){shuffleMusicBag();prepareNextMusic();scheduleNextMusicPreload(first);playNumberedNext();}
+        else if(!advanced){shuffleMusicBag();prepareNextMusic();scheduleNextMusicPreload(first);}
     }).catch(()=>{});
 }
 function playNumberedNext(){
@@ -2936,6 +2996,7 @@ function playNumberedNext(){
         prev.load();
     }
     prepareNextMusic();
+    scheduleNextMusicPreload(next);
     next.play().then(()=>{
         if(token!==musicTrackSwitchToken||musicCurrentAudio!==next)return;
         const started=performance.now();
@@ -3383,11 +3444,31 @@ function fadeOverdriveAudio(fade=.16) {
 }
 function triggerOverdriveAudio(){
  if(!musicPlaying||muted||!musicCurrentAudio)return;
- const nodes=wireMusicAudio(musicCurrentAudio);if(!nodes)return;
+ const audio=musicCurrentAudio;
+ const nodes=wireMusicAudio(audio);if(!nodes)return;
  const ctx=audioCtx,now=ctx.currentTime,filter=nodes.filter,comp=nodes.comp,gain=nodes.gain;
+ if(!nodes.overdrive){
+  try{
+   nodes.src.disconnect(gain);
+   filter.connect(comp);
+   comp.connect(gain);
+   nodes.src.connect(filter);
+   nodes.overdrive=true;
+  }catch(_){}
+ }
  overdriveActiveUntil=performance.now()+6400;
  filter.frequency.cancelScheduledValues(now);filter.frequency.setValueAtTime(19000,now);filter.frequency.exponentialRampToValueAtTime(1250,now+.35);filter.frequency.setTargetAtTime(5200,now+5.65,.32);filter.frequency.setTargetAtTime(19000,now+6.4,.25);
  comp.threshold.setValueAtTime(-26,now);comp.ratio.setValueAtTime(5,now);gain.gain.cancelScheduledValues(now);gain.gain.setValueAtTime(.66,now);gain.gain.linearRampToValueAtTime(.88,now+.28);gain.gain.setTargetAtTime(.66,now+5.9,.22);
+ const restore=()=>{
+  if(musicCurrentAudio!==audio||!nodes.overdrive)return;
+  const remaining=overdriveActiveUntil-performance.now();
+  if(remaining>30){setTimeout(restore,remaining+40);return;}
+  const t=audioCtx.currentTime;
+  gain.gain.cancelScheduledValues(t);
+  gain.gain.setTargetAtTime(.82,t,.045);
+  try{nodes.src.disconnect(filter);nodes.src.connect(gain);nodes.overdrive=false;}catch(_){}
+ };
+ setTimeout(restore,6500);
 }
 function playMusicSting(){}
 function startMusic(resume=false){if(muted)return;stopMusic();musicPlaying=true;musicResumeOffset=0;startNumberedMusic();}
@@ -6358,6 +6439,8 @@ else setTimeout(warmBlockSprites, 180);
 // Start background loop immediately
 requestAnimationFrame(update);
 drawPreviews();
+// Warm track 1 while the player is on the menu, before the first game starts.
+setTimeout(warmFirstMusicTrack,900);
 currentFrameTime = performance.now();
 draw();
 gameUiBooted = true;
