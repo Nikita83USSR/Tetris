@@ -3580,7 +3580,7 @@ function getNeonPulse(now) {
     return 1 + neonPulseAmplitude * envelope;
 }
 
-function drawNeonAuraCell(context, x, y, color, alpha = 1) {
+function drawNeonAuraCell(context, x, y, color, alpha = 1, size = 1) {
     // A broad, low-opacity radial field leaves the tile itself crisp.
     // "lighter" compositing below makes neighboring fields merge naturally.
     const match = /^#([0-9a-f]{6})$/i.exec(color);
@@ -3589,7 +3589,7 @@ function drawNeonAuraCell(context, x, y, color, alpha = 1) {
     const r = parseInt(hex.slice(0, 2), 16);
     const g = parseInt(hex.slice(2, 4), 16);
     const b = parseInt(hex.slice(4, 6), 16);
-    const cx = x + .5, cy = y + .5, radius = .94;
+    const cx = x + .5, cy = y + .5, radius = .94 * size;
     const aura = context.createRadialGradient(cx, cy, .10, cx, cy, radius);
     // Keep the luminous core broad enough to remain visible beyond the tile edge.
     // Additive overlap makes adjacent cells form a brighter shared contact seam.
@@ -3604,14 +3604,14 @@ function drawNeonAuraCell(context, x, y, color, alpha = 1) {
     context.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
     // A compact bloom follows the tile silhouette; no hard outline is drawn.
     context.shadowColor = color;
-    context.shadowBlur = .24;
+    context.shadowBlur = .24 * size;
     context.fillStyle = `rgba(${r},${g},${b},.18)`;
     roundedPath(context, x + .12, y + .12, .76, .76, .09);
     context.fill();
     context.restore();
 }
 
-function drawMatrixNeonAura(m, off, pulse = 1, targetContext = ctx) {
+function drawMatrixNeonAura(m, off, pulse = 1, targetContext = ctx, auraSize = 1) {
     targetContext.save();
     targetContext.globalCompositeOperation = 'lighter';
     m.forEach((row, y) => {
@@ -3629,7 +3629,7 @@ function drawMatrixNeonAura(m, off, pulse = 1, targetContext = ctx) {
                 const local = Math.max(0, Math.min(1, (t - stagger) / (1 - stagger)));
                 alpha = 1 - Math.pow(local, 1.35);
             } else alpha = 1;
-            if (alpha > .025) drawNeonAuraCell(targetContext, x + off.x, drawY, COLORS[v], alpha * pulse);
+            if (alpha > .025) drawNeonAuraCell(targetContext, x + off.x, drawY, COLORS[v], alpha * pulse, auraSize);
         });
     });
     targetContext.restore();
@@ -3640,8 +3640,8 @@ function drawMatrixNeonAura(m, off, pulse = 1, targetContext = ctx) {
 // settled matrix actually changes. Animated line clears keep the live rendering path.
 let matrixAuraCache = null;
 let matrixAuraCacheKey = '';
-function drawCachedMatrixNeonAura(m, pulse = 1) {
-    const key = m.map(row => row.join(',')).join(';');
+function drawCachedMatrixNeonAura(m, pulse = 1, auraSize = 1) {
+    const key = String(auraSize) + '|' + m.map(row => row.join(',')).join(';');
     if (!matrixAuraCache || matrixAuraCacheKey !== key ||
         matrixAuraCache.width !== canvas.width || matrixAuraCache.height !== canvas.height) {
         if (!matrixAuraCache) matrixAuraCache = document.createElement('canvas');
@@ -3650,7 +3650,7 @@ function drawCachedMatrixNeonAura(m, pulse = 1) {
         const auraCtx = matrixAuraCache.getContext('2d');
         auraCtx.setTransform(BLOCK * gameDpr, 0, 0, BLOCK * gameDpr, 0, 0);
         auraCtx.clearRect(0, 0, COL, ROW);
-        drawMatrixNeonAura(m, {x:0, y:0}, 1, auraCtx);
+        drawMatrixNeonAura(m, {x:0, y:0}, 1, auraCtx, auraSize);
         matrixAuraCacheKey = key;
     }
     ctx.save();
@@ -3660,11 +3660,11 @@ function drawCachedMatrixNeonAura(m, pulse = 1) {
     ctx.restore();
 }
 
-function drawPieceNeonAura(piece, pos, alpha = 1, pulse = 1) {
+function drawPieceNeonAura(piece, pos, alpha = 1, pulse = 1, auraSize = 1) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     piece.forEach((row, y) => row.forEach((v, x) => {
-        if (v) drawNeonAuraCell(ctx, x + pos.x, y + pos.y, COLORS[v], alpha * pulse);
+        if (v) drawNeonAuraCell(ctx, x + pos.x, y + pos.y, COLORS[v], alpha * pulse, auraSize);
     }));
     ctx.restore();
 }
@@ -4504,9 +4504,9 @@ function draw() {
         const neonPulse = getNeonPulse(currentFrameTime);
         if (isMobile) {
             // Preserve the mobile layering that already displays the halo clearly.
-            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse);
-            else drawCachedMatrixNeonAura(matrix, neonPulse);
-            if (player.piece) drawPieceNeonAura(player.piece, player.pos, 1, neonPulse);
+            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse * .8, ctx, .6);
+            else drawCachedMatrixNeonAura(matrix, neonPulse * .8, .6);
+            if (player.piece) drawPieceNeonAura(player.piece, player.pos, .8, neonPulse, .6);
             drawMatrix(matrix, {x:0, y:0});
         } else {
             // Draw desktop tiles normally; the cached aura is composited as the final light layer below.
