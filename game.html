@@ -3569,16 +3569,25 @@ function drawNeonAuraCell(context, x, y, color, alpha = 1) {
     const r = parseInt(hex.slice(0, 2), 16);
     const g = parseInt(hex.slice(2, 4), 16);
     const b = parseInt(hex.slice(4, 6), 16);
-    const cx = x + .5, cy = y + .5, radius = .76;
-    const aura = context.createRadialGradient(cx, cy, .08, cx, cy, radius);
-    aura.addColorStop(0, `rgba(${r},${g},${b},.25)`);
-    aura.addColorStop(.34, `rgba(${r},${g},${b},.19)`);
-    aura.addColorStop(.68, `rgba(${r},${g},${b},.075)`);
+    const cx = x + .5, cy = y + .5, radius = .94;
+    const aura = context.createRadialGradient(cx, cy, .10, cx, cy, radius);
+    // Keep the luminous core broad enough to remain visible beyond the tile edge.
+    // Additive overlap makes adjacent cells form a brighter shared contact seam.
+    aura.addColorStop(0, `rgba(${r},${g},${b},.62)`);
+    aura.addColorStop(.28, `rgba(${r},${g},${b},.50)`);
+    aura.addColorStop(.52, `rgba(${r},${g},${b},.34)`);
+    aura.addColorStop(.76, `rgba(${r},${g},${b},.14)`);
     aura.addColorStop(1, `rgba(${r},${g},${b},0)`);
     context.save();
     context.globalAlpha *= alpha;
     context.fillStyle = aura;
     context.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
+    // A compact bloom follows the tile silhouette; no hard outline is drawn.
+    context.shadowColor = color;
+    context.shadowBlur = .24;
+    context.fillStyle = `rgba(${r},${g},${b},.18)`;
+    roundedPath(context, x + .12, y + .12, .76, .76, .09);
+    context.fill();
     context.restore();
 }
 
