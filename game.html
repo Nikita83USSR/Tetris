@@ -3064,28 +3064,33 @@ function playSoftDropSound() {
     playNoiseBurst(0.035, 0.006, 'lowpass', 520);
 }
 function playFallTick() { playTone(205, 'triangle', 0.035, 0.006, 0.002, 145); }
-// Four procedural hard-drop impacts. Shuffle-like selection avoids immediate repeats.
+// Four randomized synthwave arcade hard-drop impacts: loud sub-bass, punchy synth body and a sharp transient.
 let lastHardDropVariant = -1;
 function playHardDropSound() {
     if (muted || !ensureAudio()) return;
     const variants = [
-        // Deep rubbery body + short dusty slap.
-        { sub:[78,30,.34,.17], body:[142, 'triangle', 54,.20,.075], noise:[.145,.052,'lowpass',1050], crack:[235,92,.045,.026] },
-        // Hard metallic impact, with a tighter midrange crack.
-        { sub:[66,26,.32,.18], body:[205, 'sawtooth', 61,.18,.062], noise:[.16,.046,'bandpass',780], crack:[310,118,.052,.022] },
-        // Dense concrete thump: darker and heavier.
-        { sub:[56,24,.38,.19], body:[112, 'triangle', 39,.24,.082], noise:[.19,.061,'lowpass',620], crack:[178,72,.05,.025] },
-        // Punchy arcade slam with a brighter transient.
-        { sub:[94,34,.29,.16], body:[168, 'sawtooth', 47,.17,.066], noise:[.125,.057,'bandpass',1180], crack:[355,130,.04,.024] }
+        { sub:[92,27,.46,.34], bass:[174,42,.30,.19], mid:[310,74,.13,.085], zap:[520,145,.105,.055], noise:[.115,.085,'lowpass',1450], tail:[118,48,.20,.11] },
+        { sub:[72,24,.50,.38], bass:[138,31,.34,.22], mid:[260,58,.15,.095], zap:[680,180,.09,.065], noise:[.13,.09,'bandpass',1100], tail:[96,34,.23,.13] },
+        { sub:[110,32,.40,.31], bass:[220,52,.27,.18], mid:[390,92,.12,.08], zap:[760,210,.10,.06], noise:[.10,.10,'lowpass',1900], tail:[145,55,.18,.10] },
+        { sub:[64,22,.52,.40], bass:[156,36,.36,.23], mid:[330,68,.16,.10], zap:[440,115,.12,.07], noise:[.15,.095,'lowpass',900], tail:[82,29,.25,.14] }
     ];
     let index = Math.floor(Math.random() * variants.length);
     if (index === lastHardDropVariant) index = (index + 1 + Math.floor(Math.random() * (variants.length - 1))) % variants.length;
     lastHardDropVariant = index;
     const v = variants[index];
-    playTone(v.sub[0], 'sine', v.sub[2], v.sub[3], .002, v.sub[1]);
-    playTone(v.body[0], v.body[1], v.body[3], v.body[4], .002, v.body[2]);
+
+    // Main impact: deep sub drop + saturated-sounding saw bass + bright arcade bite.
+    playTone(v.sub[0], 'sine', v.sub[2], v.sub[3], .001, v.sub[1]);
+    playTone(v.bass[0], 'sawtooth', v.bass[2], v.bass[3], .002, v.bass[1]);
+    playTone(v.mid[0], 'square', v.mid[2], v.mid[3], .001, v.mid[1]);
     playNoiseBurst(v.noise[0], v.noise[1], v.noise[2], v.noise[3]);
-    playTone(v.crack[0], 'triangle', v.crack[2], v.crack[3], .001, v.crack[1]);
+    playTone(v.zap[0], 'sawtooth', v.zap[2], v.zap[3], .001, v.zap[1]);
+
+    // A short delayed low-end rebound gives the landing a physical, arcade-like slam.
+    setTimeout(() => {
+        if (muted || !audioCtx || audioCtx.state === 'closed') return;
+        playTone(v.tail[0], 'sine', v.tail[2], v.tail[3], .002, v.tail[1]);
+    }, 42);
 }
 function playLineClearSound(n) {
     playAssetSfx(n >= 4 ? 'tetris' : 'lineclear', n >= 4 ? .82 : .58);
