@@ -3531,39 +3531,71 @@ function buildBlockSprite(value, frame) {
     const c = sprite.getContext('2d');
     c.setTransform(BLOCK_SPRITE_INNER, 0, 0, BLOCK_SPRITE_INNER, BLOCK_SPRITE_MARGIN, BLOCK_SPRITE_MARGIN);
     const color = COLORS[value];
-    const shine = .56 + .38 * (.5 + .5 * Math.sin(frame / BLOCK_SPRITE_FRAMES * Math.PI * 2));
-    c.shadowBlur = 11 + shine * 4;
+    const motion = frame / BLOCK_SPRITE_FRAMES * Math.PI * 2;
+    const breathe = .5 + .5 * Math.sin(motion);
+
+    // A machined, light-catching surface: no continuous white neon outline.
+    c.shadowBlur = 7 + breathe * 2;
     c.shadowColor = color;
-    const grad = c.createLinearGradient(0, 0, .1, 1);
-    grad.addColorStop(0, shade(color, 48));
-    grad.addColorStop(.28, shade(color, 15));
-    grad.addColorStop(.72, color);
-    grad.addColorStop(1, shade(color, -62));
+    const body = c.createLinearGradient(.08, 0, .92, 1);
+    body.addColorStop(0, shade(color, 30));
+    body.addColorStop(.3, shade(color, 12));
+    body.addColorStop(.68, shade(color, -9));
+    body.addColorStop(1, shade(color, -58));
     roundedPath(c, .045, .045, .91, .91, .105);
-    c.fillStyle = grad; c.fill();
+    c.fillStyle = body;
+    c.fill();
 
     c.shadowBlur = 0;
-    c.strokeStyle = 'rgba(0,0,0,.34)'; c.lineWidth = .055;
-    roundedPath(c, .075, .075, .85, .85, .08); c.stroke();
-
-    const topGrad = c.createLinearGradient(0, .08, 0, .36);
-    topGrad.addColorStop(0, `rgba(255,255,255,${.34 + shine * .12})`);
-    topGrad.addColorStop(1, 'rgba(255,255,255,0)');
-    roundedPath(c, .105, .09, .79, .28, .055);
-    c.fillStyle = topGrad; c.fill();
-
     c.save();
-    roundedPath(c, .08, .08, .84, .84, .075); c.clip();
-    const reflectionX = -.75 + (frame / (BLOCK_SPRITE_FRAMES - 1)) * 2.25;
-    const reflection = c.createLinearGradient(reflectionX, .18, reflectionX + .46, .78);
+    roundedPath(c, .075, .075, .85, .85, .075);
+    c.clip();
+
+    // Broad, quiet face facets give the block volume without a glossy stripe.
+    const face = c.createLinearGradient(0, .08, .86, .94);
+    face.addColorStop(0, 'rgba(255,255,255,.105)');
+    face.addColorStop(.42, 'rgba(255,255,255,.018)');
+    face.addColorStop(1, 'rgba(0,0,0,.22)');
+    c.fillStyle = face;
+    c.fillRect(.07, .07, .86, .86);
+
+    c.beginPath();
+    c.moveTo(.10, .12);
+    c.lineTo(.76, .12);
+    c.lineTo(.30, .47);
+    c.lineTo(.10, .47);
+    c.closePath();
+    c.fillStyle = 'rgba(255,255,255,.075)';
+    c.fill();
+
+    c.beginPath();
+    c.moveTo(.92, .18);
+    c.lineTo(.92, .88);
+    c.lineTo(.18, .92);
+    c.lineTo(.48, .70);
+    c.closePath();
+    c.fillStyle = 'rgba(0,0,0,.105)';
+    c.fill();
+
+    // A restrained moving reflection lives inside the face, never on the silhouette.
+    const reflectionX = -.72 + (frame / (BLOCK_SPRITE_FRAMES - 1)) * 2.0;
+    const reflection = c.createLinearGradient(reflectionX, .18, reflectionX + .34, .76);
     reflection.addColorStop(0, 'rgba(255,255,255,0)');
-    reflection.addColorStop(.48, `rgba(255,255,255,${.045 + shine * .055})`);
+    reflection.addColorStop(.5, `rgba(255,255,255,${.018 + breathe * .026})`);
     reflection.addColorStop(1, 'rgba(255,255,255,0)');
-    c.fillStyle = reflection; c.fillRect(0, 0, 1, 1);
+    c.fillStyle = reflection;
+    c.fillRect(.08, .08, .84, .84);
     c.restore();
 
-    c.strokeStyle = `rgba(255,255,255,${.22 + shine * .12})`; c.lineWidth = .025;
-    roundedPath(c, .055, .055, .89, .89, .09); c.stroke();
+    // Dark inset separates neighboring cells; a tiny color rim keeps the shape crisp.
+    c.strokeStyle = 'rgba(0,0,0,.25)';
+    c.lineWidth = .035;
+    roundedPath(c, .065, .065, .87, .87, .085);
+    c.stroke();
+    c.strokeStyle = `rgba(255,255,255,${.055 + breathe * .018})`;
+    c.lineWidth = .012;
+    roundedPath(c, .052, .052, .896, .896, .095);
+    c.stroke();
     return sprite;
 }
 
@@ -3599,18 +3631,45 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
         context.save();
         context.globalAlpha *= alpha;
         context.shadowBlur = 0;
-        roundedPath(context, x + .055, y + .055, .89, .89, .10);
-        context.fillStyle = color;
+        const body = context.createLinearGradient(x + .06, y + .04, x + .92, y + .96);
+        body.addColorStop(0, shade(color, 28));
+        body.addColorStop(.34, shade(color, 8));
+        body.addColorStop(.72, shade(color, -12));
+        body.addColorStop(1, shade(color, -55));
+        roundedPath(context, x + .045, y + .045, .91, .91, .105);
+        context.fillStyle = body;
         context.fill();
-        context.strokeStyle = 'rgba(0,0,0,.36)';
-        context.lineWidth = .045;
-        context.stroke();
-        roundedPath(context, x + .12, y + .12, .76, .22, .045);
-        context.fillStyle = 'rgba(255,255,255,.24)';
+
+        context.save();
+        roundedPath(context, x + .075, y + .075, .85, .85, .075);
+        context.clip();
+        const face = context.createLinearGradient(x, y, x + .9, y + .95);
+        face.addColorStop(0, 'rgba(255,255,255,.10)');
+        face.addColorStop(.44, 'rgba(255,255,255,.015)');
+        face.addColorStop(1, 'rgba(0,0,0,.20)');
+        context.fillStyle = face;
+        context.fillRect(x + .07, y + .07, .86, .86);
+        context.beginPath();
+        context.moveTo(x + .10, y + .12);
+        context.lineTo(x + .76, y + .12);
+        context.lineTo(x + .30, y + .47);
+        context.lineTo(x + .10, y + .47);
+        context.closePath();
+        context.fillStyle = 'rgba(255,255,255,.07)';
         context.fill();
-        roundedPath(context, x + .085, y + .085, .83, .83, .08);
-        context.strokeStyle = 'rgba(255,255,255,.20)';
-        context.lineWidth = .025;
+        context.beginPath();
+        context.moveTo(x + .92, y + .18);
+        context.lineTo(x + .92, y + .88);
+        context.lineTo(x + .18, y + .92);
+        context.lineTo(x + .48, y + .70);
+        context.closePath();
+        context.fillStyle = 'rgba(0,0,0,.10)';
+        context.fill();
+        context.restore();
+
+        roundedPath(context, x + .065, y + .065, .87, .87, .085);
+        context.strokeStyle = 'rgba(0,0,0,.25)';
+        context.lineWidth = .035;
         context.stroke();
         context.restore();
         return;
