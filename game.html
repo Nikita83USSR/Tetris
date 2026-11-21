@@ -4509,18 +4509,14 @@ function draw() {
             if (player.piece) drawPieceNeonAura(player.piece, player.pos, 1, neonPulse);
             drawMatrix(matrix, {x:0, y:0});
         } else {
-            // Desktop sprite tiles can visually mask a glow drawn underneath them.
-            // Composite a restrained halo pass over the finished tiles instead.
+            // Draw desktop tiles normally; the cached aura is composited as the final light layer below.
             drawMatrix(matrix, {x:0, y:0});
-            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse * .46);
-            else drawCachedMatrixNeonAura(matrix, neonPulse * .46);
         }
         if (lineClearAnim) drawLineClearEffect();
 
         if (player.piece) {
             drawGhost(player.piece, {x: player.pos.x, y: getGhostY()});
             drawPiece(player.piece, player.pos);
-            if (!isMobile) drawPieceNeonAura(player.piece, player.pos, .46, neonPulse);
         }
 
         if (player.trail?.length && player.piece) {
@@ -4533,6 +4529,14 @@ function draw() {
         }
 
         if (player.piece) drawPiece(player.piece, player.pos);
+
+        // Desktop aura must be the very last tile layer: sprite margins and the final
+        // active-piece redraw otherwise hide the soft light around the cells.
+        if (!isMobile) {
+            if (lineClearAnim) drawMatrixNeonAura(matrix, {x:0, y:0}, neonPulse * .9);
+            else drawCachedMatrixNeonAura(matrix, neonPulse * .9);
+            if (player.piece) drawPieceNeonAura(player.piece, player.pos, .9, neonPulse);
+        }
     }
 
     if (!gameOverAnim && hardDropLockUntil > performance.now() && player.piece) {
