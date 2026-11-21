@@ -3560,27 +3560,59 @@ function buildBlockSprite(value, frame) {
     return sprite;
 }
 
-function drawBlockNeonGlow(context, x, y, color, alpha = 1) {
-    // Draw on the game canvas, not in the cached tile: no sprite-edge clipping.
-    const transform = context.getTransform ? context.getTransform() : null;
-    const unit = Math.max(18, Math.min(64, Math.abs(transform?.a || 32)));
-    const layers = [
-        { blur: unit * .42, opacity: .34 },
-        { blur: unit * .23, opacity: .48 },
-        { blur: unit * .10, opacity: .62 }
-    ];
+function drawNeonAuraCell(context, x, y, color, alpha = 1) {
+    // A broad, low-opacity radial field leaves the tile itself crisp.
+    // "lighter" compositing below makes neighboring fields merge naturally.
+    const match = /^#([0-9a-f]{6})$/i.exec(color);
+    if (!match) return;
+    const hex = match[1];
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const cx = x + .5, cy = y + .5, radius = .76;
+    const aura = context.createRadialGradient(cx, cy, .08, cx, cy, radius);
+    aura.addColorStop(0, `rgba(${r},${g},${b},.25)`);
+    aura.addColorStop(.34, `rgba(${r},${g},${b},.19)`);
+    aura.addColorStop(.68, `rgba(${r},${g},${b},.075)`);
+    aura.addColorStop(1, `rgba(${r},${g},${b},0)`);
     context.save();
-    for (const layer of layers) {
-        context.save();
-        context.globalAlpha *= alpha * layer.opacity;
-        context.shadowColor = color;
-        context.shadowBlur = layer.blur;
-        roundedPath(context, x + .12, y + .12, .76, .76, .075);
-        context.fillStyle = color;
-        context.fill();
-        context.restore();
-    }
+    context.globalAlpha *= alpha;
+    context.fillStyle = aura;
+    context.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
     context.restore();
+}
+
+function drawMatrixNeonAura(m, off) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    m.forEach((row, y) => {
+        let drawY = y + off.y;
+        let alpha = 1;
+        if (lineClearAnim?.phase === 'cascade' && y > 0 && y <= lineClearAnim.clearedY) {
+            const t = Math.min(1, lineClearAnim.phaseElapsed / lineClearAnim.phaseDuration);
+            drawY = y - 1 + (1 - Math.pow(1 - t, 3)) + off.y;
+        }
+        row.forEach((v, x) => {
+            if (!v) return;
+            if (lineClearAnim?.phase === 'disintegrate' && y === lineClearAnim.rowY) {
+                const t = Math.min(1, lineClearAnim.phaseElapsed / lineClearAnim.phaseDuration);
+                const stagger = x * .012;
+                const local = Math.max(0, Math.min(1, (t - stagger) / (1 - stagger)));
+                alpha = 1 - Math.pow(local, 1.35);
+            } else alpha = 1;
+            if (alpha > .025) drawNeonAuraCell(ctx, x + off.x, drawY, COLORS[v], alpha);
+        });
+    });
+    ctx.restore();
+}
+
+function drawPieceNeonAura(piece, pos, alpha = 1) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    piece.forEach((row, y) => row.forEach((v, x) => {
+        if (v) drawNeonAuraCell(ctx, x + pos.x, y + pos.y, COLORS[v], alpha);
+    }));
+    ctx.restore();
 }
 
 let blockWarmupStarted = false;
@@ -3611,7 +3643,7 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
     // Android browsers can fail to composite tiny offscreen canvases reliably.
     // Draw mobile blocks directly on the main canvas; no sprite dependency.
     const color = COLORS[value];
-    drawBlockNeonGlow(context, x, y, color, alpha);
+    // Aura is rendered in a dedicated additive pass before all solid tiles.
     // Android browsers can fail to composite tiny offscreen canvases reliably.
     // Keep mobile tiles on the main canvas, but share the same unclipped neon glow.
     if (isMobile) {
@@ -4414,6 +4446,10 @@ function draw() {
     if (gameOverAnim) {
         drawGameOverScene();
     } else {
+        // Render all colored light fields first so neighboring halos blend together
+        // instead of being covered by later tiles in the draw order.
+        drawMatrixNeonAura(matrix, {x:0, y:0});
+        if (player.piece) drawPieceNeonAura(player.piece, player.pos);
         drawMatrix(matrix, {x:0, y:0});
         if (lineClearAnim) drawLineClearEffect();
 
