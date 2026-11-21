@@ -3534,18 +3534,26 @@ function buildBlockSprite(value, frame) {
     const motion = frame / BLOCK_SPRITE_FRAMES * Math.PI * 2;
     const breathe = .5 + .5 * Math.sin(motion);
 
-    // A machined, light-catching surface: no continuous white neon outline.
-    c.shadowBlur = 7 + breathe * 2;
+    // Soft colored neon bloom: visible around the block, but never a hard outline.
+    c.shadowBlur = 12 + breathe * 3;
     c.shadowColor = color;
     const body = c.createLinearGradient(.08, 0, .92, 1);
-    body.addColorStop(0, shade(color, 30));
-    body.addColorStop(.3, shade(color, 12));
-    body.addColorStop(.68, shade(color, -9));
-    body.addColorStop(1, shade(color, -58));
+    body.addColorStop(0, shade(color, 38));
+    body.addColorStop(.24, shade(color, 18));
+    body.addColorStop(.62, shade(color, -8));
+    body.addColorStop(1, shade(color, -62));
     roundedPath(c, .045, .045, .91, .91, .105);
     c.fillStyle = body;
     c.fill();
 
+    // A second, wider and weaker pass creates atmospheric color spill, not a neon tube.
+    c.shadowBlur = 19 + breathe * 4;
+    c.shadowColor = color;
+    c.globalAlpha = .22;
+    c.fillStyle = color;
+    roundedPath(c, .075, .075, .85, .85, .09);
+    c.fill();
+    c.globalAlpha = 1;
     c.shadowBlur = 0;
     c.save();
     roundedPath(c, .075, .075, .85, .85, .075);
@@ -3574,8 +3582,31 @@ function buildBlockSprite(value, frame) {
     c.lineTo(.18, .92);
     c.lineTo(.48, .70);
     c.closePath();
-    c.fillStyle = 'rgba(0,0,0,.105)';
+    c.fillStyle = 'rgba(0,0,0,.15)';
     c.fill();
+
+    // Fine bevels catch light on the upper/left planes and deepen the opposite edge.
+    c.beginPath();
+    c.moveTo(.13, .10);
+    c.lineTo(.78, .10);
+    c.quadraticCurveTo(.88, .10, .90, .20);
+    c.strokeStyle = 'rgba(255,255,255,.16)';
+    c.lineWidth = .018;
+    c.stroke();
+    c.beginPath();
+    c.moveTo(.10, .20);
+    c.lineTo(.10, .78);
+    c.quadraticCurveTo(.10, .88, .20, .90);
+    c.strokeStyle = 'rgba(255,255,255,.095)';
+    c.lineWidth = .018;
+    c.stroke();
+    c.beginPath();
+    c.moveTo(.90, .28);
+    c.lineTo(.90, .80);
+    c.quadraticCurveTo(.90, .90, .80, .90);
+    c.strokeStyle = 'rgba(0,0,0,.22)';
+    c.lineWidth = .025;
+    c.stroke();
 
     // A restrained moving reflection lives inside the face, never on the silhouette.
     const reflectionX = -.72 + (frame / (BLOCK_SPRITE_FRAMES - 1)) * 2.0;
