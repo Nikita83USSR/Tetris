@@ -3661,7 +3661,8 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
         const color = COLORS[value];
         context.save();
         context.globalAlpha *= alpha;
-        context.shadowBlur = 0;
+        context.shadowBlur = 5;
+        context.shadowColor = color;
         const body = context.createLinearGradient(x + .06, y + .04, x + .92, y + .96);
         body.addColorStop(0, shade(color, 28));
         body.addColorStop(.34, shade(color, 8));
@@ -3670,6 +3671,7 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
         roundedPath(context, x + .045, y + .045, .91, .91, .105);
         context.fillStyle = body;
         context.fill();
+        context.shadowBlur = 0;
 
         context.save();
         roundedPath(context, x + .075, y + .075, .85, .85, .075);
@@ -3694,8 +3696,23 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
         context.lineTo(x + .18, y + .92);
         context.lineTo(x + .48, y + .70);
         context.closePath();
-        context.fillStyle = 'rgba(0,0,0,.10)';
+        context.fillStyle = 'rgba(0,0,0,.15)';
         context.fill();
+
+        context.beginPath();
+        context.moveTo(x + .13, y + .10);
+        context.lineTo(x + .78, y + .10);
+        context.moveTo(x + .10, y + .20);
+        context.lineTo(x + .10, y + .78);
+        context.strokeStyle = 'rgba(255,255,255,.14)';
+        context.lineWidth = .018;
+        context.stroke();
+        context.beginPath();
+        context.moveTo(x + .90, y + .28);
+        context.lineTo(x + .90, y + .80);
+        context.strokeStyle = 'rgba(0,0,0,.20)';
+        context.lineWidth = .025;
+        context.stroke();
         context.restore();
 
         roundedPath(context, x + .065, y + .065, .87, .87, .085);
