@@ -2758,10 +2758,63 @@ function shuffleMusicBag(){musicBag=musicFiles.slice();for(let i=musicBag.length
 let musicGraphNodes=new WeakMap();
 function wireMusicAudio(audio){if(musicGraphNodes.has(audio)||!ensureAudio())return musicGraphNodes.get(audio);try{const src=audioCtx.createMediaElementSource(audio),filter=audioCtx.createBiquadFilter(),comp=audioCtx.createDynamicsCompressor(),gain=audioCtx.createGain();filter.type='lowpass';filter.frequency.value=19000;filter.Q.value=.7;comp.threshold.value=-12;comp.ratio.value=2;gain.gain.value=.82;src.connect(filter);filter.connect(comp);comp.connect(gain);gain.connect(musicGain||masterGain);const nodes={filter,comp,gain};musicGraphNodes.set(audio,nodes);return nodes;}catch(_){return null;}}
 function newMusicAudio(n){const a=new Audio(MUSIC_BASE+n+'.mp3');a.preload='auto';a.volume=1;return a;}
-function prepareNextMusic(){if(!musicFiles.length)return;if(!musicBag.length)shuffleMusicBag();musicNextIndex=musicBag.pop();musicNextAudio=newMusicAudio(musicNextIndex);}
+function prepareNextMusic(){if(!musicFiles.length)return;if(!musicBag.length)shuffleMusicBag();musicNextIndex=musicBag.pop();musicNextAudio=newMusicAudio(musicNextIndex);musicNextAudio.load();}
 function startNumberedMusic(){discoverMusicFiles().then(files=>{musicFiles=files;if(!files.length||!musicPlaying||muted)return;shuffleMusicBag();prepareNextMusic();playNumberedNext();}).catch(()=>{});}
-function playNumberedNext(){if(!musicPlaying||muted||!musicNextAudio)return;const prev=musicCurrentAudio;musicCurrentAudio=musicNextAudio;currentMusicTrackIndex=musicNextIndex;musicNextAudio=null;musicNextIndex=-1;musicCurrentAudio.volume=1;wireMusicAudio(musicCurrentAudio);musicCurrentAudio.play().then(()=>{const t=performance.now(),fade=setInterval(()=>{const p=Math.min(1,(performance.now()-t)/650);if(musicCurrentAudio)musicCurrentAudio.volume=(muted?0:.78)*p;if(p>=1)clearInterval(fade);},25);}).catch(()=>{});if(prev){prev.pause();prev.src='';}prepareNextMusic();if(musicCurrentAudio)musicCurrentAudio.onended=playNumberedNext;}
-function stopNumberedMusic(){[musicCurrentAudio,musicNextAudio].forEach(a=>{if(a){a.pause();a.onended=null;a.src='';}});musicCurrentAudio=musicNextAudio=null;musicNextIndex=-1;}
+function playNumberedNext(){
+    if(!musicPlaying||muted||!musicNextAudio)return;
+    const token=++musicTrackSwitchToken;
+    const prev=musicCurrentAudio;
+    const next=musicNextAudio;
+    const nextIndex=musicNextIndex;
+    musicCurrentAudio=next;
+    currentMusicTrackIndex=nextIndex;
+    musicNextAudio=null;
+    musicNextIndex=-1;
+    next.volume=1;
+    wireMusicAudio(next);
+    let advanced=false;
+    const advance=()=>{
+        if(advanced||token!==musicTrackSwitchToken||musicCurrentAudio!==next)return;
+        advanced=true;
+        next.onended=null;
+        next.onerror=null;
+        if(musicPlaying&&!muted)playNumberedNext();
+    };
+    next.onended=advance;
+    next.onerror=advance;
+    if(prev){
+        prev.onended=null;
+        prev.onerror=null;
+        prev.pause();
+        prev.removeAttribute('src');
+        prev.load();
+    }
+    prepareNextMusic();
+    next.play().then(()=>{
+        if(token!==musicTrackSwitchToken||musicCurrentAudio!==next)return;
+        const started=performance.now();
+        const fade=setInterval(()=>{
+            if(token!==musicTrackSwitchToken||musicCurrentAudio!==next){clearInterval(fade);return;}
+            const progress=Math.min(1,(performance.now()-started)/650);
+            next.volume=(muted?0:.78)*progress;
+            if(progress>=1)clearInterval(fade);
+        },25);
+    }).catch(advance);
+}
+function stopNumberedMusic(){
+    musicTrackSwitchToken++;
+    [musicCurrentAudio,musicNextAudio].forEach(audio=>{
+        if(audio){
+            audio.onended=null;
+            audio.onerror=null;
+            audio.pause();
+            audio.removeAttribute('src');
+            audio.load();
+        }
+    });
+    musicCurrentAudio=musicNextAudio=null;
+    musicNextIndex=-1;
+}
 const externalSfx = {
     harddrop: new Audio('./assets/audio/sfx/harddrop.wav'),
     lineclear: new Audio('./assets/audio/sfx/lineclear.wav'),
