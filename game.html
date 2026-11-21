@@ -3531,67 +3531,56 @@ function buildBlockSprite(value, frame) {
     const c = sprite.getContext('2d');
     c.setTransform(BLOCK_SPRITE_INNER, 0, 0, BLOCK_SPRITE_INNER, BLOCK_SPRITE_MARGIN, BLOCK_SPRITE_MARGIN);
     const color = COLORS[value];
-    const motion = frame / BLOCK_SPRITE_FRAMES * Math.PI * 2;
-    const breathe = .5 + .5 * Math.sin(motion);
 
-    // Three restrained bloom layers: broad atmosphere, saturated halo, tight colored light.
-    const glowShape = () => {
-        roundedPath(c, .105, .105, .79, .79, .075);
-        c.fillStyle = color;
-        c.fill();
-    };
-    c.save();
-    c.globalAlpha = .15 + breathe * .035;
-    c.shadowColor = color;
-    c.shadowBlur = 24;
-    glowShape();
-    c.restore();
-
-    c.save();
-    c.globalAlpha = .24 + breathe * .045;
-    c.shadowColor = color;
-    c.shadowBlur = 14;
-    glowShape();
-    c.restore();
-
-    c.save();
-    c.globalAlpha = .32 + breathe * .05;
-    c.shadowColor = color;
-    c.shadowBlur = 7;
-    glowShape();
-    c.restore();
-
-    // Flat luminous face: no bevels, facets, glossy stripes or white outline.
+    // Flat arcade tile. Neon bloom is rendered on the main canvas, outside this sprite,
+    // so the glow can extend freely instead of being clipped by the sprite bounds.
     const body = c.createLinearGradient(0, .08, 0, .94);
-    body.addColorStop(0, shade(color, 24));
-    body.addColorStop(.48, color);
-    body.addColorStop(1, shade(color, -22));
+    body.addColorStop(0, shade(color, 20));
+    body.addColorStop(.5, color);
+    body.addColorStop(1, shade(color, -18));
     roundedPath(c, .075, .075, .85, .85, .075);
     c.fillStyle = body;
     c.fill();
 
-    // Very soft inner illumination adds polish while keeping the tile visually flat.
     c.save();
     roundedPath(c, .085, .085, .83, .83, .07);
     c.clip();
     const inner = c.createRadialGradient(.34, .25, .02, .48, .45, .72);
-    inner.addColorStop(0, 'rgba(255,255,255,.13)');
-    inner.addColorStop(.48, 'rgba(255,255,255,.035)');
-    inner.addColorStop(1, 'rgba(0,0,0,.13)');
+    inner.addColorStop(0, 'rgba(255,255,255,.10)');
+    inner.addColorStop(.55, 'rgba(255,255,255,.025)');
+    inner.addColorStop(1, 'rgba(0,0,0,.10)');
     c.fillStyle = inner;
     c.fillRect(.08, .08, .84, .84);
     c.restore();
 
-    // Dark separation keeps adjacent cells crisp; the colored rim is barely visible.
-    c.strokeStyle = 'rgba(0,0,0,.24)';
-    c.lineWidth = .026;
+    c.strokeStyle = 'rgba(0,0,0,.22)';
+    c.lineWidth = .025;
     roundedPath(c, .075, .075, .85, .85, .075);
     c.stroke();
-    c.strokeStyle = 'rgba(255,255,255,.045)';
-    c.lineWidth = .009;
-    roundedPath(c, .085, .085, .83, .83, .07);
-    c.stroke();
     return sprite;
+}
+
+function drawBlockNeonGlow(context, x, y, color, alpha = 1) {
+    // Draw on the game canvas, not in the cached tile: no sprite-edge clipping.
+    const transform = context.getTransform ? context.getTransform() : null;
+    const unit = Math.max(18, Math.min(64, Math.abs(transform?.a || 32)));
+    const layers = [
+        { blur: unit * .42, opacity: .34 },
+        { blur: unit * .23, opacity: .48 },
+        { blur: unit * .10, opacity: .62 }
+    ];
+    context.save();
+    for (const layer of layers) {
+        context.save();
+        context.globalAlpha *= alpha * layer.opacity;
+        context.shadowColor = color;
+        context.shadowBlur = layer.blur;
+        roundedPath(context, x + .12, y + .12, .76, .76, .075);
+        context.fillStyle = color;
+        context.fill();
+        context.restore();
+    }
+    context.restore();
 }
 
 let blockWarmupStarted = false;
@@ -3621,50 +3610,23 @@ function drawBlock(x, y, value, context, alpha = 1, time = currentFrameTime) {
     if (!value) return;
     // Android browsers can fail to composite tiny offscreen canvases reliably.
     // Draw mobile blocks directly on the main canvas; no sprite dependency.
+    const color = COLORS[value];
+    drawBlockNeonGlow(context, x, y, color, alpha);
+    // Android browsers can fail to composite tiny offscreen canvases reliably.
+    // Keep mobile tiles on the main canvas, but share the same unclipped neon glow.
     if (isMobile) {
-        const color = COLORS[value];
-        const pulse = .5 + .5 * Math.sin(time * .0032 + x * .7 + y * .43);
         context.save();
         context.globalAlpha *= alpha;
-
-        // Match desktop: a wide atmospheric halo, a saturated mid glow and a tight core.
-        const glow = (blur, opacity) => {
-            context.save();
-            context.globalAlpha *= opacity;
-            context.shadowColor = color;
-            context.shadowBlur = blur;
-            roundedPath(context, x + .10, y + .10, .80, .80, .075);
-            context.fillStyle = color;
-            context.fill();
-            context.restore();
-        };
-        glow(18, .16 + pulse * .025);
-        glow(11, .25 + pulse * .035);
-        glow(5, .34 + pulse * .045);
-
-        // Clean, flat color surface; depth comes from light, not 3D bevels.
         const body = context.createLinearGradient(x, y + .08, x, y + .94);
-        body.addColorStop(0, shade(color, 24));
-        body.addColorStop(.48, color);
-        body.addColorStop(1, shade(color, -22));
+        body.addColorStop(0, shade(color, 20));
+        body.addColorStop(.5, color);
+        body.addColorStop(1, shade(color, -18));
         roundedPath(context, x + .075, y + .075, .85, .85, .075);
         context.fillStyle = body;
         context.fill();
-
-        context.save();
-        roundedPath(context, x + .085, y + .085, .83, .83, .07);
-        context.clip();
-        const inner = context.createRadialGradient(x + .34, y + .25, .02, x + .48, y + .45, .72);
-        inner.addColorStop(0, 'rgba(255,255,255,.13)');
-        inner.addColorStop(.48, 'rgba(255,255,255,.035)');
-        inner.addColorStop(1, 'rgba(0,0,0,.13)');
-        context.fillStyle = inner;
-        context.fillRect(x + .08, y + .08, .84, .84);
-        context.restore();
-
         roundedPath(context, x + .075, y + .075, .85, .85, .075);
-        context.strokeStyle = 'rgba(0,0,0,.24)';
-        context.lineWidth = .026;
+        context.strokeStyle = 'rgba(0,0,0,.22)';
+        context.lineWidth = .025;
         context.stroke();
         context.restore();
         return;
