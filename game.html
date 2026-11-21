@@ -2868,8 +2868,9 @@ function startNumberedMusic(){
     }).catch(()=>{});
     discoverMusicFiles().then(files=>{
         musicFiles=files.filter(n=>n!==1);
-        if(!musicPlaying||muted||!musicFiles.length||advanced)return;
-        shuffleMusicBag();prepareNextMusic();
+        if(!musicPlaying||muted||!musicFiles.length)return;
+        if(advanced&&musicCurrentAudio===first){shuffleMusicBag();prepareNextMusic();playNumberedNext();}
+        else if(!advanced){shuffleMusicBag();prepareNextMusic();}
     }).catch(()=>{});
 }
 function playNumberedNext(){
