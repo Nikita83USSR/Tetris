@@ -1880,7 +1880,9 @@
            It must never paint into the active-piece area. */
         .arena-bezel::before { z-index: 0 !important; }
         .arena-bezel canvas#tetris { position: relative; z-index: 1 !important; }
-        /* Tiny build marker: visible for cache verification, never intercepts gameplay input. */
+        /* Build marker retained for quick diagnostics; hidden in the normal player UI.
+           Restore display:flex (or remove this rule) when verifying a test deployment. */
+        #build-version-badge { display: none !important; }
         #build-version-badge {
             position: fixed;
             top: max(3px, env(safe-area-inset-top));
