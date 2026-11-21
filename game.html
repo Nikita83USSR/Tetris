@@ -1876,6 +1876,27 @@
         @keyframes fadeOut {from{opacity:1;}to{opacity:0;}}
 
 
+        /* Firefox mobile fallback: avoid continuously blurring the animated full-screen canvas. */
+        .firefox-mobile-render #game-container,
+        .firefox-mobile-render .overlay,
+        .firefox-mobile-render .stat-box,
+        .firefox-mobile-render .preview-card,
+        .firefox-mobile-render #top-bar,
+        .firefox-mobile-render #top-bar button,
+        .firefox-mobile-render .holo-reward-card {
+            -webkit-backdrop-filter:none !important;
+            backdrop-filter:none !important;
+        }
+        .firefox-mobile-render #game-container,
+        .firefox-mobile-render .arena-bezel,
+        .firefox-mobile-render #game-container::before,
+        .firefox-mobile-render #game-container::after,
+        .firefox-mobile-render .arena-bezel::before,
+        .firefox-mobile-render .arena-bezel::after {
+            animation:none !important;
+            filter:none !important;
+        }
+
         /* V15.1 FIX: keep the animated conic bezel rail behind the playfield canvas.
            It must never paint into the active-piece area. */
         .arena-bezel::before { z-index: 0 !important; }
@@ -2156,14 +2177,17 @@ const isMobile = (() => {
     const narrow = Math.min(window.innerWidth, window.innerHeight) < 760;
     return !!coarse || (touch && narrow);
 })();
+const isFirefoxMobile = isMobile && /(?:Firefox|FxiOS|Fennec|Focus)\//i.test(navigator.userAgent || '');
+if (isFirefoxMobile) document.documentElement.classList.add('firefox-mobile-render');
 // Keep the visual design intact while avoiding oversized backing stores on high-DPR phones.
 const isLowPowerDevice = isMobile && (
     (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) ||
     (navigator.deviceMemory && navigator.deviceMemory <= 4)
 );
-const mobileBgDprCap = isLowPowerDevice ? 1.2 : 1.4;
-const mobileGameDprCap = isLowPowerDevice ? 1.35 : 1.55;
-const BACKGROUND_FRAME_INTERVAL = isMobile ? (isLowPowerDevice ? 1000 / 36 : 1000 / 45) : 0;
+const mobileBgDprCap = isFirefoxMobile ? 1.05 : (isLowPowerDevice ? 1.2 : 1.4);
+const mobileGameDprCap = isFirefoxMobile ? 1.25 : (isLowPowerDevice ? 1.35 : 1.55);
+// Keep the actual game loop at the browser refresh rate; throttle only decorative scenery.
+const BACKGROUND_FRAME_INTERVAL = isMobile ? (isFirefoxMobile ? 1000 / 30 : (isLowPowerDevice ? 1000 / 36 : 1000 / 45)) : 0;
 let lastBackgroundPaint = -Infinity;
 
 // Optional local performance diagnostics: append ?perf=1 and inspect
@@ -4596,7 +4620,6 @@ function draw() {
 
         if (player.piece) {
             drawGhost(player.piece, {x: player.pos.x, y: getGhostY()});
-            drawPiece(player.piece, player.pos);
         }
 
         if (player.trail?.length && player.piece) {
@@ -4608,6 +4631,7 @@ function draw() {
             }
         }
 
+        // Draw the active piece once, after its drop trail, so it stays visually on top.
         if (player.piece) drawPiece(player.piece, player.pos);
 
         // Desktop aura must be the very last tile layer: sprite margins and the final
