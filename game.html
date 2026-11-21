@@ -2195,6 +2195,7 @@ const bgCanvas = document.getElementById('bg-canvas');
 const bgCtx = bgCanvas.getContext('2d', { alpha: false, desynchronized: true });
 let bgW, bgH, bgParticles = [], bgDpr = 1;
 let bgBackplateCanvas = null, bgStarCanvas = null, bgParticleSprite = null, bgShipSprites = [];
+let bgVerticalGridCanvas = null, bgVerticalGridKey = '';
 let bgLastZoneIndex = -1;
 const bgSceneImage = new Image();
 bgSceneImage.decoding = 'async';
@@ -2379,6 +2380,28 @@ function drawSkyStars(motionTime) {
         bgCtx.beginPath(); bgCtx.arc(star.x, star.y, star.r * (1.0 + twinkle * .22), 0, Math.PI * 2); bgCtx.fill();
     }
     bgCtx.restore();
+}
+
+function drawCachedVerticalGrid(zone, zoneIndex, vanishX, horizon) {
+    const key = String(bgCanvas.width) + 'x' + String(bgCanvas.height) + '|' + String(bgDpr) + '|' + String(zoneIndex);
+    if (!bgVerticalGridCanvas || bgVerticalGridKey !== key) {
+        bgVerticalGridCanvas = document.createElement('canvas');
+        bgVerticalGridCanvas.width = bgCanvas.width;
+        bgVerticalGridCanvas.height = bgCanvas.height;
+        const gridCtx = bgVerticalGridCanvas.getContext('2d');
+        gridCtx.setTransform(bgDpr, 0, 0, bgDpr, 0, 0);
+        gridCtx.lineWidth = 1;
+        for (let i = -16; i <= 16; i++) {
+            const xBottom = vanishX + i * (bgW / 14);
+            gridCtx.strokeStyle = 'rgba(' + zone.grid + ', ' + (0.06 + Math.abs(i) * 0.004) + ')';
+            gridCtx.beginPath();
+            gridCtx.moveTo(vanishX, horizon);
+            gridCtx.lineTo(xBottom, bgH + 20);
+            gridCtx.stroke();
+        }
+        bgVerticalGridKey = key;
+    }
+    bgCtx.drawImage(bgVerticalGridCanvas, 0, 0, bgW, bgH);
 }
 
 function drawSkyTraffic(motionTime, horizon, speedMultiplier) {
@@ -2719,15 +2742,8 @@ function drawBackground(t) {
     // Level-dependent edge streaks reinforce the sensation of forward acceleration.
     drawLevelSpeedStreaks(horizon, bgMotionClock, bgSpeedMultiplier);
 
-    // vertical lines converging
-    for (let i = -16; i <= 16; i++) {
-        const xBottom = vanishX + i * (bgW / 14);
-        bgCtx.strokeStyle = `rgba(${zone.grid}, ${0.06 + Math.abs(i) * 0.004})`;
-        bgCtx.beginPath();
-        bgCtx.moveTo(vanishX, horizon);
-        bgCtx.lineTo(xBottom, bgH + 20);
-        bgCtx.stroke();
-    }
+    // Static converging lines are rasterized once per viewport and palette.
+    drawCachedVerticalGrid(zone, zoneIndex, vanishX, horizon);
 
     // floating particles
     bgParticles.forEach(p => {
