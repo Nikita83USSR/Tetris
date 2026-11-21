@@ -71,10 +71,10 @@
   <script>
     // Independent emergency diagnostics: runs before the game iframe and main loader.
     (() => {
-      if (new URLSearchParams(location.search).get('perf') !== '1') return;
+      // Diagnostics are enabled by default on main; no query parameters required.
       const panel = document.getElementById('boot-debug');
       panel.style.cssText = 'display:block!important;position:fixed!important;left:8px!important;right:8px!important;top:48px!important;bottom:auto!important;max-height:38vh!important;overflow:auto!important;z-index:2147483647!important;margin:0!important;padding:10px!important;background:rgba(0,5,15,.98)!important;color:#aeefff!important;border:2px solid #38cdb0!important;border-radius:8px!important;font:12px/1.5 monospace!important;white-space:pre-wrap!important;pointer-events:auto!important';
-      const lines = ['DIAGNOSTICS ACTIVE', 'URL: ' + location.href, 'Document: ' + document.readyState];
+      const lines = ['CYBER TETRIS DIAGNOSTICS — ALWAYS ON', 'URL: ' + location.href, 'Document: ' + document.readyState];
       const render = () => { panel.textContent = lines.slice(-30).join('\\n'); };
       window.__bootDiag = message => { lines.push(new Date().toLocaleTimeString() + ' ' + message); render(); };
       window.addEventListener('error', e => window.__bootDiag('WINDOW ERROR: ' + (e.message || e.type)));
