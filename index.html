@@ -35,6 +35,7 @@
     body.game-ready .loader-card{opacity:0;transform:translateY(-8px) scale(.985);transition:opacity .35s ease,transform .35s ease;pointer-events:none}
     body.game-ready .splash-bg{opacity:0;transition:opacity .45s ease}
     .load-error{display:none;margin:13px auto 0;color:#ffb6a7;font-size:10px;line-height:1.5}
+    #boot-debug{position:fixed;z-index:9;left:10px;right:10px;bottom:10px;max-height:24vh;overflow:auto;padding:8px 10px;border:1px solid rgba(100,230,255,.25);border-radius:9px;background:rgba(0,5,15,.78);color:#aeefff;font:10px/1.45 monospace;text-align:left;white-space:pre-wrap;pointer-events:none}
     .retry{display:none;margin:10px auto 0;min-height:38px;padding:0 19px;border:1px solid rgba(255,170,119,.72);border-bottom:3px solid #81391f;border-radius:11px;background:linear-gradient(180deg,#ffbd7c,#e85d3b);color:#23111b;font-weight:950;letter-spacing:.1em}
     .load-failed .load-error,.load-failed .retry{display:block}
     @keyframes orbPulse{0%,100%{transform:scale(1);filter:brightness(.96)}50%{transform:scale(1.08);filter:brightness(1.17)}}
@@ -58,6 +59,7 @@
     <div class="load-error" id="load-error">Не удалось загрузить игровые ресурсы. Проверьте соединение и попробуйте ещё раз.</div>
     <button class="retry" id="retry-btn" type="button">ПОВТОРИТЬ ЗАГРУЗКУ</button>
   </main>
+  <div id="boot-debug">DEBUG BOOT: ожидание iframe…</div>
   <iframe id="game-frame" src="./game.html?v=15.1.2-no-atmosphere" title="Cyber Tetris — игра" allow="autoplay; fullscreen" allowfullscreen></iframe>
   <noscript><p style="position:fixed;z-index:10;top:50%;left:10%;right:10%;text-align:center">Для запуска Cyber Tetris необходимо включить JavaScript.</p></noscript>
   <script>
@@ -69,6 +71,7 @@
       const stage=document.getElementById('loading-stage');
       const meter=document.querySelector('.meter');
       let progress=7, frameLoaded=false, ready=false, slowTimer=0;
+      const debugBox=document.getElementById('boot-debug');let debugLines=[];const dbg=(msg)=>{debugLines.push(new Date().toLocaleTimeString()+' '+msg);if(debugLines.length>8)debugLines.shift();debugBox.textContent=debugLines.join('\n');};dbg('loader script started');
       const setProgress=(value,label)=>{
         progress=Math.max(progress,Math.min(99,Math.round(value)));
         fill.style.width=progress+'%';percent.textContent=String(progress).padStart(2,'0')+'%';
@@ -81,6 +84,7 @@
         if(event.origin!==location.origin || event.source!==frame.contentWindow) return;
         const data=event.data;
         if(!data || data.type!=='CYBER_TETRIS_BOOT') return;
+        dbg('game progress '+data.progress+'% · '+data.label);
         setProgress(data.progress,data.label);
       });
       function reveal(){
@@ -93,7 +97,7 @@
       }
       function maybeReveal(){if(frameLoaded && progress>=90) reveal();}
       frame.addEventListener('load',()=>{
-        frameLoaded=true;
+        frameLoaded=true;dbg('iframe load event');
         try{
           // The iframe document can load before JS-created image assets finish decoding.
           // Never force the splash to 100% here; wait for game.html's real readiness message.
@@ -107,7 +111,9 @@
         }catch(_){caption.textContent='ДОГРУЖАЕМ ИГРОВЫЕ РЕСУРСЫ';}
         maybeReveal();
       });
-      frame.addEventListener('error',()=>document.body.classList.add('load-failed'));
+      frame.addEventListener('error',()=>{dbg('iframe load ERROR event');document.body.classList.add('load-failed');});
+      window.addEventListener('error',e=>dbg('parent error: '+e.message));
+      window.addEventListener('unhandledrejection',e=>dbg('parent promise: '+String(e.reason)));
       slowTimer=window.setTimeout(()=>{
         if(!ready){caption.textContent='ЗАГРУЗКА ЗАНИМАЕТ БОЛЬШЕ ОБЫЧНОГО · ПРОДОЛЖАЕМ…';document.body.classList.add('load-failed');}
       },22000);
