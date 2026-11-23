@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#050711">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <meta name="description" content="Cyber Tetris — неоновая аркада в стиле Synthwave">
   <title>Загрузка — Cyber Tetris</title>
   <style>
@@ -66,6 +67,19 @@
   <noscript><p style="position:fixed;z-index:10;top:50%;left:10%;right:10%;text-align:center">Для запуска Cyber Tetris необходимо включить JavaScript.</p></noscript>
   <script>
     (()=>{
+      // Telegram-only: expand the Mini App and request native fullscreen.
+      // In a regular browser Telegram.WebApp is absent, so browser behavior is unchanged.
+      const telegramApp=window.Telegram?.WebApp;
+      if(telegramApp){
+        try{telegramApp.ready();}catch(_){}
+        try{telegramApp.expand();}catch(_){}
+        if(typeof telegramApp.requestFullscreen==='function'){
+          try{
+            const fullscreenRequest=telegramApp.requestFullscreen();
+            if(fullscreenRequest && typeof fullscreenRequest.catch==='function') fullscreenRequest.catch(()=>{});
+          }catch(_){}
+        }
+      }
       const frame=document.getElementById('game-frame');
       const fill=document.getElementById('meter-fill');
       const percent=document.getElementById('loading-percent');
