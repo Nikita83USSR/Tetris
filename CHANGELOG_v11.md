@@ -1,4 +1,4 @@
-# Cyber Tetris v11 — Mobile Performance
+# Synth Block v11 — Mobile Performance
 
 ## What changed
 - Cached pre-rendered glossy block variants and ghost cell to reduce per-cell gradient, clip, and shadow work.
