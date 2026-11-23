@@ -270,7 +270,7 @@
         }
 
 
-        /* ===== CYBER TETRIS 2.0: adaptive layout + touch ergonomics ===== */
+        /* ===== SYNTH BLOCK 2.0: adaptive layout + touch ergonomics ===== */
         html, body { min-height: 100%; overscroll-behavior: none; }
         #game-shell { width: 100%; padding: max(env(safe-area-inset-top), 6px) max(env(safe-area-inset-right), 6px) max(env(safe-area-inset-bottom), 6px) max(env(safe-area-inset-left), 6px); }
         #game-container { transition: box-shadow .2s ease; }
@@ -4782,13 +4782,13 @@ function arenaSweep(spinInfo = { isTSpin: false, mini: false }) {
 
     let title;
     if (spinInfo.isTSpin) title = rows.length ? `${spinInfo.mini ? 'МИНИ ' : ''}Т-СПИН: ${['','ОДНА ЛИНИЯ','ДВЕ ЛИНИИ','ТРИ ЛИНИИ'][rows.length]}!` : `${spinInfo.mini ? 'МИНИ ' : ''}Т-СПИН!`;
-    else title = rows.length >= 4 ? 'ТЕТРИС!' : ['','ОДНА ЛИНИЯ!','ДВЕ ЛИНИИ!','ТРИ ЛИНИИ!'][rows.length] || 'ОЧИСТКА!';
+    else title = rows.length >= 4 ? 'ЧЕТВЁРКА!' : ['','ОДНА ЛИНИЯ!','ДВЕ ЛИНИИ!','ТРИ ЛИНИИ!'][rows.length] || 'ОЧИСТКА!';
     let subtitle = combo > 1 ? `СЕРИЯ ×${combo}` : `${pts.toLocaleString('ru-RU')} ОЧКОВ`;
     if (earnedBackToBack) subtitle += '  ·  BACK-TO-BACK ×1,5';
     if (player.level > oldLevel) subtitle += `  ·  УРОВЕНЬ ${player.level}`;
     eventBanner = { title, subtitle, start: performance.now(), duration: rows.length >= 4 || spinInfo.isTSpin ? 1450 : 1050, color: spinInfo.isTSpin ? '#ffb45d' : (rows.length >= 4 ? '#ffb24a' : '#58f6ff') };
     if (spinInfo.isTSpin) showHoloReward(spinInfo.mini ? 'МИНИ T-SPIN!' : 'T-SPIN!', subtitle, 'tspin', 1580);
-    else if (rows.length >= 4) showHoloReward('ТЕТРИС!', subtitle, 'tetris', 1720);
+    else if (rows.length >= 4) showHoloReward('ЧЕТВЁРКА!', subtitle, 'tetris', 1720);
     else if (earnedBackToBack) showHoloReward('BACK-TO-BACK', subtitle, 'b2b', 1500);
     else if (combo >= 3) showHoloReward(`КОМБО ×${combo}`, subtitle, 'combo', 1250);
     else if (player.level > oldLevel) showHoloReward(`УРОВЕНЬ ${player.level}`, 'НОВАЯ СТУПЕНЬ · OVERDRIVE', 'level', 1380);
@@ -4895,7 +4895,7 @@ function finishLineClear() {
 const CHALLENGE_POOL = [
     { type:'score', title:'Аркадный разгон', desc:'Наберите 6 000 очков за одну партию', target:6000, unit:'очков', mode:'max' },
     { type:'lines', title:'Чистое поле', desc:'Очистите 15 линий за день', target:15, unit:'линий', mode:'add' },
-    { type:'tetris', title:'Четвёрка', desc:'Сделайте два Тетриса за день', target:2, unit:'Тетриса', mode:'add' },
+    { type:'tetris', title:'Четвёрка', desc:'Сделайте две очистки четырёх линий за день', target:2, unit:'раза', mode:'add' },
     { type:'tspin', title:'Мастер вращения', desc:'Выполните один T-Spin', target:1, unit:'T-Spin', mode:'add' },
     { type:'combo', title:'Цепная реакция', desc:'Доберитесь до серии ×3', target:3, unit:'серия', mode:'max' },
     { type:'perfect', title:'Идеальная очистка', desc:'Полностью очистите игровое поле', target:1, unit:'Perfect Clear', mode:'add' }
@@ -5126,7 +5126,7 @@ function renderRecordsScreen() {
         ['ЛИЧНЫЙ РЕКОРД', best.toLocaleString('ru-RU')],
         ['СРЕДНИЙ СЧЁТ', average.toLocaleString('ru-RU')],
         ['МАКС. СЕРИЯ', `×${persistentStats.bestCombo || 0}`],
-        ['ТЕТРИСЫ', persistentStats.tetrises || 0],
+        ['ЧЕТВЁРКИ', persistentStats.tetrises || 0],
         ['T-SPIN', persistentStats.tspins || 0],
         ['PERFECT CLEAR', persistentStats.perfectClears || 0]
     ];
@@ -5141,7 +5141,7 @@ function renderRecordsScreen() {
         const rank=document.createElement('div'); rank.className='record-rank'; rank.textContent=recentMode ? `${i+1}.` : `#${i+1}`;
         const main=document.createElement('div'); main.className='record-main';
         const score=document.createElement('strong'); score.textContent=Number(r.score).toLocaleString('ru-RU');
-        const date=document.createElement('small'); date.textContent=r.legacy ? 'ИМПОРТ ПРЕЖНЕГО РЕКОРДА' : `${r.date || '—'} · ${r.lines || 0} линий · ${r.tetrises || 0} Тетрисов · ${r.tspins || 0} T-Spin`;
+        const date=document.createElement('small'); date.textContent=r.legacy ? 'ИМПОРТ ПРЕЖНЕГО РЕКОРДА' : `${r.date || '—'} · ${r.lines || 0} линий · ${r.tetrises || 0} очисток четырёх линий · ${r.tspins || 0} T-Spin`;
         main.append(score,date);
         const level=document.createElement('div'); level.className='record-level'; level.textContent=r.legacy ? 'ИМПОРТ' : `УР. ${r.level || 1}`;
         row.append(rank,main,level); target.append(row);
@@ -5241,7 +5241,7 @@ function saveGameResult() {
         if(player.score>oldBest) { localStorage.setItem('cyberTetrisBest',String(player.score)); pendingNewRecordVoice=true; }
     } catch (_) {}
     const finalStats=document.getElementById('final-mini-stats');
-    if(finalStats) finalStats.textContent=`${player.lines} ЛИНИЙ · ${player.tspins} T-SPIN · ${player.tetrises} ТЕТРИСА · УР. ${player.level}`;
+    if(finalStats) finalStats.textContent=`${player.lines} ЛИНИЙ · ${player.tspins} T-SPIN · ${player.tetrises} ЧЕТВЁРКИ · УР. ${player.level}`;
     renderRecordsScreen();
 }
 
