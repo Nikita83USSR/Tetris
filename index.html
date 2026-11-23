@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#050711">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <meta name="description" content="Cyber Tetris — неоновая аркада в стиле Synthwave">
-  <title>Загрузка — Cyber Tetris</title>
+  <meta name="description" content="Synth Block — неоновая аркада в стиле Synthwave">
+  <title>Загрузка — Synth Block</title>
   <style>
     :root{color-scheme:dark;--cyan:#64efff;--orange:#ff995a;--violet:#9e79ff}
     *{box-sizing:border-box}
@@ -52,7 +52,7 @@
   <main class="loader-card" id="loader-card" role="status" aria-live="polite">
     <div class="loader-corners" aria-hidden="true"></div>
     <div class="brand-kicker">Nikita Markin presents</div>
-    <h1>CYBER TETRIS</h1>
+    <h1>SYNTH BLOCK</h1>
     <div class="brand-sub">SYNTHWAVE ARCADE</div>
     <div class="loader-orb" aria-hidden="true"></div>
     <div class="loading-title">ПОДОЖДИТЕ, ЗАГРУЖАЕМ ИГРУ</div>
@@ -63,8 +63,8 @@
     <button class="retry" id="retry-btn" type="button">ПОВТОРИТЬ ЗАГРУЗКУ</button>
     <div class="loader-actions"><button class="loader-action" id="refresh-page-btn" type="button">ОБНОВИТЬ ИГРУ</button></div>
   </main>
-  <iframe id="game-frame" src="./game.html?v=15.1.4" title="Cyber Tetris — игра" allow="autoplay; fullscreen" allowfullscreen></iframe>
-  <noscript><p style="position:fixed;z-index:10;top:50%;left:10%;right:10%;text-align:center">Для запуска Cyber Tetris необходимо включить JavaScript.</p></noscript>
+  <iframe id="game-frame" src="./game.html?v=15.1.4" title="Synth Block — игра" allow="autoplay; fullscreen" allowfullscreen></iframe>
+  <noscript><p style="position:fixed;z-index:10;top:50%;left:10%;right:10%;text-align:center">Для запуска Synth Block необходимо включить JavaScript.</p></noscript>
   <script>
     (()=>{
       // Telegram-only: expand the Mini App and request native fullscreen.
@@ -106,7 +106,7 @@
         document.body.classList.remove('load-failed');
         fill.style.width='100%';percent.textContent='100%';meter.setAttribute('aria-valuenow','100');
         caption.textContent='МИР ГОТОВ. УДАЧНОЙ ИГРЫ!';stage.textContent='СИСТЕМА ГОТОВА';
-        document.title='Cyber Tetris — Synthwave Arcade';
+        document.title='Synth Block — Synthwave Arcade';
         window.setTimeout(()=>document.body.classList.add('game-ready'),180);
       }
       function maybeReveal(){if(frameLoaded && progress>=90) reveal();}
