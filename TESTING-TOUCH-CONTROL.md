@@ -1,4 +1,4 @@
-# Cyber Tetris — TEST build: horizontal touch diagnostics
+# Synth Block — TEST build: horizontal touch diagnostics
 
 **Status:** Experimental test release (2026-11-20). Not a stable release.
 
