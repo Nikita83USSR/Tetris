@@ -2234,8 +2234,17 @@ function resizeBg() {
     buildBackgroundCaches();
 }
 resizeBg();
-window.addEventListener('resize', resizeBg, { passive: true });
-window.addEventListener('orientationchange', () => setTimeout(resizeBg, 120), { passive: true });
+
+// Telegram Mini Apps can emit a burst of viewport resize events while expanding or
+// collapsing. Rebuild expensive scenery caches only after the viewport settles.
+let bgResizeTimer = 0;
+function scheduleBgResize() {
+    clearTimeout(bgResizeTimer);
+    bgResizeTimer = setTimeout(resizeBg, 140);
+}
+window.addEventListener('resize', scheduleBgResize, { passive: true });
+window.addEventListener('orientationchange', scheduleBgResize, { passive: true });
+if (window.visualViewport) window.visualViewport.addEventListener('resize', scheduleBgResize, { passive: true });
 
 function initBgParticles() {
     bgParticles = [];
