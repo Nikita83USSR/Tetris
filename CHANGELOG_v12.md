@@ -1,4 +1,4 @@
-# Changelog — Cyber Tetris v12
+# Changelog — Synth Block v12
 
 ## Сенсорное управление
 
