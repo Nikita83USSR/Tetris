@@ -1,4 +1,4 @@
-# Cyber Tetris v13 — Danger State & Mobile Joystick
+# Synth Block v13 — Danger State & Mobile Joystick
 
 - Added a stack-height danger state with a rising meter, red solar tint, chassis warning glow, critical heartbeat and a low warning pulse.
 - Added event-focused camera punches for hard drops, line clears, Perfect Clear and critical danger. The camera motion uses a smooth envelope and stays subtle during normal play.
